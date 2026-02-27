@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conda Setup on macOS (Apple Silicon)</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="scroll-progress-wrap"><div class="scroll-progress-bar"></div></div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-title">Bioinformatics</a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+    </nav>
+  </header>
+
+  <article class="blog-article">
+    <header class="article-header">
+      <h1 class="article-title">Conda Setup on macOS (Apple Silicon)</h1>
+      <p class="article-subtitle">In this section, we will conceptualize the role of a package manager like Conda as a "Lab Manager" that handles software acquisition and compatibility, then walk through installing and configuring Miniconda alongside the Bioconda channel to gain access to thousands of specialized bioinformatics tools. From there, we will look at how to create and activate isolated environments, the computational equivalent of a sterile hood to prevent software conflicts from derailing your analysis, and finally how to verify your installations and export your environment details so that everything you do remains fully reproducible by others.</p>
+      <figure class="article-figure">
+        <img src="../images/conda.png" alt="ATAC-seq analysis pipeline overview">
+      </figure>
+      <div class="article-meta">
+        <div class="meta-column">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Yerkem Shakhman</span>
+        </div>
+        <div class="meta-column">
+          <span class="meta-label">Chapter</span>
+          <span class="meta-value">3 — Conda Setup</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <aside class="article-toc">
+        <h2 class="toc-title">Contents</h2>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li><a href="#lab-manager">The Lab Manager</a></li>
+            <li><a href="#why-conda">Why Conda?</a></li>
+            <li>
+              <a href="#install-miniconda">Installing Miniconda</a>
+              <ul>
+                <li><a href="#download">Download the Installer</a></li>
+                <li><a href="#run-installer">Run the Installer</a></li>
+                <li><a href="#verify-install">Verify the Installation</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="#bioconda">Setting Up Bioconda</a>
+              <ul>
+                <li><a href="#what-are-channels">What Are Channels?</a></li>
+                <li><a href="#configure-channels">Configure Your Channels</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="#environments">Creating Environments</a>
+              <ul>
+                <li><a href="#sterile-hood">The Sterile Hood Analogy</a></li>
+                <li><a href="#create-env">Create Your First Environment</a></li>
+                <li><a href="#activate-env">Activate and Deactivate</a></li>
+                <li><a href="#install-tools">Installing Tools</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="#verify">Verifying Your Setup</a>
+            </li>
+            <li>
+              <a href="#export">Exporting for Reproducibility</a>
+            </li>
+            <li><a href="#troubleshooting">Troubleshooting</a></li>
+            <li><a href="#summary">Summary</a></li>
+            <li><a href="#references">References</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="article-content">
+        <section id="lab-manager">
+          <h2>The Lab Manager</h2>
+          <p>
+            Every productive wet lab has a lab manager — someone who orders reagents, keeps track of what is in stock, ensures that chemicals from different vendors are compatible with each other, and makes sure nothing expires quietly on a back shelf. Without this person, researchers would each order their own supplies, store them in different places, and inevitably discover mid-experiment that a critical buffer was reformulated last year and no longer works with their protocol.
+          </p>
+          <p>
+            Conda is that lab manager for your computer. It is a <em>package manager</em> and <em>environment manager</em> — a piece of software whose sole job is to install other software, track which versions are present, and ensure that everything you install is compatible with everything else. When you tell Conda to install a bioinformatics tool like Bowtie2 or SAMtools, it does not simply drop a program onto your machine. It reads the tool's dependency list (the computational equivalent of a reagent's certificate of analysis), checks that list against what is already installed, resolves any conflicts, and only then proceeds with the installation. If two tools require different versions of the same underlying library, Conda will tell you rather than silently installing something that will break at runtime.
+          </p>
+          <p>
+            This matters enormously in bioinformatics because the tools we use are not standalone applications. They are built on top of layers of other software — compilers, math libraries, file-format parsers — and a version mismatch in any one of those layers can produce silent errors in your results, the computational equivalent of a contaminated reagent that doesn't change the color of your solution but ruins your Western blot.
+          </p>
+        </section>
+
+        <section id="why-conda">
+          <h2>Why Conda?</h2>
+          <p>
+            You might wonder why we don't just use the macOS built-in tools or Homebrew, the popular general-purpose package manager for Mac. The answer comes down to specialization. Homebrew is excellent for installing everyday desktop utilities, but it was not designed for scientific computing and does not integrate with the Bioconda ecosystem — a curated repository of over 8,000 bioinformatics packages maintained by the open-source community <a href="#ref-1" class="footnote-ref">[1]</a>. Conda, on the other hand, was built from the ground up for data science and scientific computing workflows, and Bioconda plugs directly into it.
+          </p>
+          <p>
+            We will install <strong>Miniconda</strong> rather than the full Anaconda distribution. The difference is straightforward: Anaconda ships with hundreds of pre-installed packages (many of which you will never use), while Miniconda gives you just the Conda engine itself plus Python, weighing in at a few hundred megabytes instead of several gigabytes. Think of it as buying a basic lab bench and only the equipment you actually need, rather than purchasing a fully furnished lab with instruments you will never touch.
+          </p>
+          <blockquote>
+            <p><strong>Apple Silicon note:</strong> If your Mac was manufactured in late 2020 or later, it likely contains an Apple Silicon chip (M1, M2, M3, or M4). These chips use the ARM64 architecture rather than Intel's x86_64. Make sure you download the ARM64 version of Miniconda — the Intel version will run through an emulation layer called Rosetta 2 and will be noticeably slower.</p>
+          </blockquote>
+        </section>
+
+        <section id="install-miniconda">
+          <h2>Installing Miniconda</h2>
+
+          <h3 id="download">Step 1 — Download the Installer</h3>
+          <p>
+            Open your Terminal (you learned how to find it in Chapter 2) and run the following command. 
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh</code></pre>
+          </div>
+          <p>
+            This uses <code>curl</code>, a command-line tool for downloading files from the internet, to fetch the latest Miniconda installer built specifically for Apple Silicon Macs. The <code>-O</code> flag tells <code>curl</code> to save the file with its original name rather than dumping the contents to your screen. After this command finishes, you will have a file called <code>Miniconda3-latest-MacOSX-arm64.sh</code> in your current directory. The <code>.sh</code> extension means it is a shell script a set of instructions the computer will execute to install Miniconda.
+          </p>
+
+          <h3 id="run-installer">Step 2 — Run the Installer</h3>
+          <p>
+            Now execute the installer with <code>bash</code>:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>bash Miniconda3-latest-MacOSX-arm64.sh</code></pre>
+          </div>
+          <p>
+            The installer will walk you through a few prompts. Here is what to expect:
+          </p>
+          <ul>
+            <li><strong>License agreement:</strong> Press <code>Enter</code> to scroll through, then type <code>yes</code> to accept.</li>
+            <li><strong>Installation location:</strong> The default (<code>/Users/yourname/miniconda3</code>) is almost always the right choice. Press <code>Enter</code> to accept it.</li>
+            <li><strong>Initialize Miniconda:</strong> When it asks whether to run <code>conda init</code>, type <code>yes</code>. This modifies your shell configuration file (typically <code>~/.zshrc</code> on modern macOS) so that the <code>conda</code> command is available every time you open a new terminal.</li>
+          </ul>
+          <p>
+            After the installer finishes, close your terminal and open a fresh one so the shell picks up the new configuration. You should see <code>(base)</code> appear at the beginning of your command prompt — this indicates Conda is active and you are inside the default "base" environment.
+          </p>
+
+          <h3 id="verify-install">Step 3 — Verify the Installation</h3>
+          <p>
+            Run the following command to confirm Conda was installed correctly:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda --version</code></pre>
+          </div>
+          <p>
+            You should see something like <code>conda 24.x.x</code> printed to the screen. If instead you see <code>command not found: conda</code>, it means the shell configuration was not updated. Try running <code>source ~/.zshrc</code> to reload it manually, or re-run the installer and make sure you answer <code>yes</code> to the <code>conda init</code> question.
+          </p>
+          <p>
+            Once that is working, clean up the installer file since you no longer need it:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>rm Miniconda3-latest-MacOSX-arm64.sh</code></pre>
+          </div>
+        </section>
+
+        <section id="bioconda">
+          <h2>Setting Up Bioconda</h2>
+
+          <h3 id="what-are-channels">What Are Channels?</h3>
+          <p>
+            Conda installs software from <em>channels</em> — repositories of pre-built packages hosted on the internet. The default channel maintained by Anaconda contains general-purpose scientific software, but it does not include most bioinformatics tools. For those, we need <strong>Bioconda</strong>, a community-driven channel that packages over 8,000 bioinformatics tools in a way that Conda can install and manage automatically <a href="#ref-1" class="footnote-ref">[1]</a>. Bioconda in turn depends on <strong>conda-forge</strong>, a larger community channel that provides the foundational libraries many bioinformatics tools are built on top of.
+          </p>
+          <p>
+            In wet lab terms, think of channels as different suppliers. Your general lab supplier (the defaults channel) carries pipette tips and basic buffers. A specialty supplier (Bioconda) carries the niche enzymes and kits specific to your assay. And the raw materials warehouse (conda-forge) supplies the glass and plastic that both suppliers ultimately depend on.
+          </p>
+
+          <h3 id="configure-channels">Configure Your Channels</h3>
+          <p>
+            Run the following three commands, in this exact order. The order matters because Conda searches channels from highest to lowest priority, and Bioconda requires that <code>conda-forge</code> take the highest priority to ensure dependency compatibility.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge</code></pre>
+          </div>
+          <p>
+            Each <code>conda config --add channels</code> command adds a channel to the top of the priority list, so after running all three, the priority order from highest to lowest will be: <code>conda-forge</code>, then <code>bioconda</code>, then <code>defaults</code>. This is the recommended configuration from the Bioconda project <a href="#ref-1" class="footnote-ref">[1]</a>.
+          </p>
+          <p>
+            It is also recommended to set the channel priority to "strict," which tells Conda to always prefer packages from higher-priority channels even if a lower-priority channel has a newer version. This prevents subtle version conflicts:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda config --set channel_priority strict</code></pre>
+          </div>
+          <p>
+            You can confirm your channel configuration at any time by running:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda config --show channels</code></pre>
+          </div>
+          <p>
+            The output should list <code>conda-forge</code> first, <code>bioconda</code> second, and <code>defaults</code> third.
+          </p>
+        </section>
+
+        <section id="environments">
+          <h2>Creating Environments</h2>
+
+          <h3 id="sterile-hood">The Sterile Hood Analogy</h3>
+          <p>
+            In a wet lab, a sterile hood (also called a biosafety cabinet or laminar flow hood) provides an isolated workspace where you can handle sensitive materials without contamination from the surrounding environment, and without your work contaminating anything else. Conda environments serve the exact same purpose for software.
+          </p>
+          <p>
+            An environment is a self-contained directory that holds a specific collection of packages and their dependencies, completely isolated from every other environment on your system. If you install Bowtie2 version 2.5 for one project and need version 2.4 for another, each can live in its own environment without any conflict. If an installation goes wrong and corrupts the environment, you simply delete it and recreate it — the rest of your system is untouched. This isolation is what makes computational experiments reproducible: by recording exactly what is in each environment, anyone can recreate the same software conditions on a different machine.
+          </p>
+          <blockquote>
+            <p><strong>Golden rule:</strong> Never install bioinformatics tools directly into the <code>base</code> environment. The base environment is Conda's own operating system — if you corrupt it, you may need to reinstall Conda entirely. Always create a dedicated environment for your project.</p>
+          </blockquote>
+
+          <h3 id="create-env">Create Your First Environment</h3>
+          <p>
+            Let's create an environment for our ATAC-seq project. We will name it <code>bio-tools</code>.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda create -n bio-tools seqtk fastqc</code></pre>
+          </div>
+          <p>
+            This command tells Conda to build a new isolated environment called <code>bio-tools</code>, install <code>seqtk</code> (a Swiss-army knife for manipulating sequence files) and <code>fastqc</code> (for quality control) inside it. Conda will show you a list of packages it plans to install and ask you to confirm by typing <code>y</code> and pressing <code>Enter</code>. After it finishes, the environment exists on disk but is not yet active.
+          </p>
+
+          <h3 id="activate-env">Activate and Deactivate</h3>
+          <p>
+            To step into the environment, run:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda activate bio-tools</code></pre>
+          </div>
+          <p>
+            Your command prompt will change from <code>(base)</code> to <code>(bio-tools)</code>, visually confirming which environment you are working inside — similar to how a biosafety cabinet has a label indicating its certification level. From this point on, any software you install will go into the <code>bio-tools</code> environment only and will not affect anything else on your system.
+          </p>
+          <p>
+            When you are finished working and want to leave the environment, run:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda deactivate</code></pre>
+          </div>
+          <p>
+            This drops you back into the <code>base</code> environment. You can list all environments on your system at any time with:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda env list</code></pre>
+          </div>
+          <p>
+            The asterisk (<code>*</code>) in the output marks whichever environment is currently active.
+          </p>
+
+          <h3 id="install-tools">Installing Tools</h3>
+          <p>
+            With your <code>bio-tools</code> environment activated, you can begin installing the bioinformatics tools you will need for the pipeline. Let's install a few of the core tools introduced in Chapter 1. Run the following command to install Bowtie2 (alignment), and SAMtools (BAM file manipulation) all in one go:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda install bowtie2 samtools</code></pre>
+          </div>
+          <p>
+            Conda will resolve all dependencies between these tools (which collectively depend on dozens of underlying libraries), present you with the full installation plan, and ask for confirmation. This process can take a minute or two while Conda works out the optimal combination of compatible package versions — the computational equivalent of a lab manager checking that every reagent in a multi-step protocol is compatible before placing the order.
+          </p>
+          <p>
+            If you later realize you need an additional tool, you can install it into the same environment at any time. For example, to add MACS2 for peak calling:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda install macs2</code></pre>
+          </div>
+        </section>
+
+        <section id="verify">
+          <h2>Verifying Your Setup</h2>
+          <p>
+            After installing tools, it is important to confirm that each one actually works. This is the bioinformatics equivalent of running a positive control before committing to a full experiment. With your <code>bio-tools</code> environment active, run the following version checks:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>fastqc --version
+bowtie2 --version
+samtools --version</code></pre>
+          </div>
+          <p>
+            Each command should print its name and version number without any errors. If any command returns <code>command not found</code>, it means either the installation failed or the environment is not activated. Double-check that your prompt shows <code>(bio-tools)</code> and try reinstalling the problematic tool.
+          </p>
+          <p>
+            You can also see everything installed in the current environment as a single list:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda list</code></pre>
+          </div>
+          <p>
+            This prints every package installed in the active environment along with its version number and the channel it was installed from. If you ever need to check whether a specific tool is installed without scrolling through the entire list, you can pipe the output through <code>grep</code>:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda list | grep samtools</code></pre>
+          </div>
+        </section>
+
+        <section id="export">
+          <h2>Exporting for Reproducibility</h2>
+          <p>
+            One of the most powerful features of Conda environments is the ability to export an exact snapshot of everything installed, down to the precise version and build string of every package. This file can be shared with collaborators, attached to a publication as supplementary material, or stored alongside your scripts so that anyone — including your future self — can recreate the identical computational environment months or years later.
+          </p>
+          <p>
+            To export your environment, run:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda env export > environment.yml</code></pre>
+          </div>
+          <p>
+            The <code>></code> symbol redirects the output of the command into a file instead of printing it to the screen. The resulting <code>environment.yml</code> file is a plain-text recipe that lists the environment name, channels, and every installed package with its exact version. You should save this file in the <code>meta</code> folder of your project (the one we created in Chapter 2) to keep it alongside your sample sheet and other project metadata:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>mv environment.yml ~/atacseq/meta/</code></pre>
+          </div>
+          <p>
+            When a collaborator (or you on a new machine) wants to recreate the environment, they run a single command:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda env create -f environment.yml</code></pre>
+          </div>
+          <p>
+            Conda reads the file, installs every package at the exact version specified, and produces a byte-for-byte identical environment. This is the computational equivalent of shipping a frozen aliquot of every reagent you used alongside your protocol — anyone can thaw it and run the experiment exactly as you did.
+          </p>
+          <blockquote>
+            <p><strong>Best practice:</strong> Re-export your <code>environment.yml</code> any time you install, update, or remove a package. Treat it like updating your lab notebook — if the environment changes and the file does not, the record is out of date.</p>
+          </blockquote>
+        </section>
+
+        <section id="troubleshooting">
+          <h2>Troubleshooting</h2>
+          <ul>
+            <li>
+              <strong><code>conda: command not found</code></strong> — This means your shell does not know where Conda is. Run <code>source ~/.zshrc</code> to reload your shell configuration, or re-run the Miniconda installer and answer <code>yes</code> to the <code>conda init</code> prompt.
+            </li>
+            <li>
+              <strong>Solving environment takes forever:</strong> If Conda hangs for a very long time while resolving dependencies, try using the <strong>libmamba solver</strong>, which is significantly faster. Recent versions of Conda include it by default. You can enable it with: <code>conda config --set solver libmamba</code>.
+            </li>
+            <li>
+              <strong>Package not found in current channels:</strong> Make sure your channels are configured in the correct order (conda-forge first, bioconda second, defaults third). Run <code>conda config --show channels</code> to verify. If the package still isn't found, search for it with <code>conda search &lt;package-name&gt;</code> to check availability.
+            </li>
+            <li>
+              <strong>Rosetta / architecture warnings:</strong> If you see warnings about running x86_64 packages on ARM, you may have installed the Intel version of Miniconda. Check with <code>conda info</code> and look at the "platform" line — it should say <code>osx-arm64</code> for Apple Silicon. If it says <code>osx-64</code>, uninstall and reinstall with the ARM64 installer.
+            </li>
+            <li>
+              <strong>Accidentally installed into base:</strong> If you installed tools into the base environment by mistake, you can remove them with <code>conda remove &lt;package-name&gt;</code> and reinstall them in the correct project environment. Going forward, make it a habit to always check your prompt for the environment name before running <code>conda install</code>.
+            </li>
+          </ul>
+        </section>
+
+
+        <section id="references" class="references">
+          <h2>References</h2>
+          <ol>
+            <li id="ref-1">Grüning, B., Dale, R., Sjödin, A., Chapman, B.A., Rowe, J., Tomkins-Tinch, C.H., Valieris, R. and Köster, J. (2018). Bioconda: sustainable and comprehensive software distribution for the life sciences. <em>Nature Methods</em>, 15(7), 475–476.</li>
+            <li id="ref-2">Anaconda, Inc. (2024). Miniconda — Conda documentation. <a href="https://docs.conda.io/en/latest/miniconda.html">https://docs.conda.io/en/latest/miniconda.html</a></li>
+            <li id="ref-3">Conda documentation. Managing environments — Conda. <a href="https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html">https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html</a></li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <nav class="chapter-nav">
+    <a href="chapter_2.html">
+      <span class="nav-arrow">&larr;</span>
+      <span class="nav-direction">Previous</span>
+    </a>
+    <a href="chapter_4.html">
+      <span class="nav-direction">Next</span>
+      <span class="nav-arrow">&rarr;</span>
+    </a>
+  </nav>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Bioinformatics by Yerkem Shakhman. Built for wet lab researchers and students in computational biology.</p>
+  </footer>
+
+  <script src="blog-post-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Quality Check (FastQC)</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="scroll-progress-wrap"><div class="scroll-progress-bar"></div></div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-title">Bioinformatics</a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+    </nav>
+  </header>
+
+  <article class="blog-article">
+    <header class="article-header">
+      <h1 class="article-title">The Quality Check (FastQC)</h1>
+      <p class="article-subtitle">In this section, we will walk through retrieving raw sequencing data directly from public repositories like ENCODE using command-line tools, then creating a reproducible digital aliquot — a small, representative subset of that data — using seqtk so you can test your pipeline efficiently without waiting for full-scale runs. From there, we will execute FastQC to generate quality assessment reports on the raw reads, and then work through how to interpret the basic structure of those reports so you can make an informed decision about whether your data is suitable for downstream analysis.</p>
+      <figure class="article-figure">
+        <img src="../images/ngs.png" alt="Next-generation sequencing and quality control overview">
+      </figure>
+      <div class="article-meta">
+        <div class="meta-column">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Yerkem Shakhman</span>
+        </div>
+        <div class="meta-column">
+          <span class="meta-label">Chapter</span>
+          <span class="meta-value">4 — Quality Check</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <aside class="article-toc">
+        <h2 class="toc-title">Contents</h2>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li><a href="#digital-nanodrop">The "Digital Nanodrop"</a></li>
+            <li>
+              <a href="#entering-the-lab">Entering the Lab</a>
+              <ul>
+               
+              </ul>
+            </li>
+            <li><a href="#retrieving-sample">Retrieving the Sample</a></li>
+            <li>
+              <a href="#digital-aliquot">Creating a "Digital Aliquot"</a>
+              <ul>
+                <li><a href="#seqtk-command">The seqtk Command</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="#running-fastqc">Running FastQC</a>
+            </li>
+            <li>
+              <a href="#viewing-report">Viewing the Report</a>
+              <ul>
+                <li><a href="#traffic-lights">Reading the Traffic Lights</a></li>
+              </ul>
+            </li>
+            <li><a href="#troubleshooting">Troubleshooting</a></li>
+            <li><a href="#summary">Next Step</a></li>
+            <li><a href="#references">References</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="article-content">
+        <section id="digital-nanodrop">
+          <h2>The "Digital Nanodrop"</h2>
+          <p>
+            Imagine you just received a box of dry ice from a sequencing facility. Inside are tubes of DNA. Before you use that DNA for a crucial, expensive experiment, what is the first thing you do?
+          </p>
+          <p>
+            You run it on a Nanodrop or a Bioanalyzer. You need to know: Is the DNA degraded? Is there contamination? Is the concentration what they promised?
+          </p>
+          <p>
+            In computational biology, we have the exact same problem. You have just received a file containing millions of sequencing reads (a FASTQ file). Before you spend days trying to map these reads to a genome, you must verify that the sequencing run actually worked.
+          </p>
+          <p>
+            To do this, we use a tool called FastQC <a href="#ref-1" class="footnote-ref">[1]</a>. It is the standard "Bioanalyzer" of the bioinformatics world.
+          </p>
+        </section>
+
+        <section id="entering-the-lab">
+          <h2>Entering the Lab</h2>
+
+          <p>
+            First, we need to make sure we are wearing our lab coat. In Chapter 3, we created a specific environment called <code>bio-tools</code> where we installed our software. We need to put that coat on now.
+          </p>
+          <p>Open your terminal and run:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda activate bio-tools</code></pre>
+          </div>
+          <p>
+            Does your prompt start with <code>(bio-tools)</code>? If yes, you are ready. If you see <code>(base)</code> or no prefix at all, double-check that the environment was created successfully in Chapter 3.
+          </p>
+          <p>
+            Now, walk to the "freezer" where we decided to store our raw samples (the directory structure we built in Chapter 2):
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd ~/atacseq/raw_data</code></pre>
+          </div>
+          <p>
+            You can confirm you are in the right place by running <code>pwd</code>. The output should end in <code>atacseq/raw_data</code>.
+          </p>
+        </section>
+
+        <section id="retrieving-sample">
+          <h2>Retrieving the Sample</h2>
+
+          <p>
+            For this handbook, you won't need to sequence your own DNA. Instead, we will work with a high-quality public dataset from ENCODE, the Encyclopedia of DNA Elements <a href="#ref-2" class="footnote-ref">[2]</a> specifically an ATAC-seq dataset generated from mouse monocytes, a type of immune cell. Mouse data was chosen to avoid the ethical and privacy complexities that come with handling human genomic data in a tutorial context, and monocytes make an ideal biological example because immune cells have highly dynamic chromatin, making them particularly well-suited to ATAC-seq analysis for revealing which genes are open and actively regulated.
+          </p>
+          <p>
+            To download the data, run the following command:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>wget https://www.encodeproject.org/files/ENCFF535OGL/@@download/ENCFF535OGL.fastq.gz</code></pre>
+          </div>
+          <p>
+            This uses a tool called <code>wget</code>, which stands for Web Get and functions like a digital courier service — you provide it with a URL and it retrieves the file from the internet and deposits it in your current folder. As it runs, you will see a progress bar filling up on screen. The file being downloaded has a <code>.gz</code> extension, which indicates it is compressed in gzip format, similar to a <code>.zip</code> file. Once the download finishes, running <code>ls -lh</code> should show <code>ENCFF535OGL.fastq.gz</code> sitting in your folder, confirming the file arrived successfully.
+          </p>
+        </section>
+
+        <section id="digital-aliquot">
+          <h2>Creating a "Digital Aliquot"</h2>
+          <p>
+            The file you just downloaded is large. Running a full analysis on it might take 10–20 minutes. When you are building a pipeline or learning, you don't want to wait that long just to see if your code works.
+          </p>
+          <p>
+            In the wet lab, you wouldn't use your entire stock of antibody for a test run. You would take a small aliquot. We will do the same using a tool called <code>seqtk</code> <a href="#ref-3" class="footnote-ref">[3]</a> — we will randomly grab 1 million reads to play with.
+          </p>
+
+          <h3 id="seqtk-command">The seqtk Command</h3>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>seqtk sample -s 100 ENCFF535OGL.fastq.gz 1000000 | gzip > ENCFF535OGL_subset.fastq.gz</code></pre>
+          </div>
+          <p>
+           There is quite a lot happening in this single line, so it is worth walking through each piece. The command opens with <code>seqtk sample</code>, which tells the tool that we want to randomly sample reads from a file. The <code> -s 100</code> flag sets the seed, meaning that anyone who runs this exact command will get the same set of reads every time — this is the computational equivalent of labeling an aliquot, and it is what makes the subsetting step reproducible. <code> ENCFF535OGL.fastq.gz</code> is the input file being sampled from, and <code>1000000 </code> specifies that we want exactly one million reads pulled from it. The <code> |</code> symbol, known as a pipe, takes the output of <code>seqtk </code> and feeds it directly into the next command rather than saving a large intermediate file to disk. That next command is <code> gzip</code>, which compresses the sampled reads on the fly to save storage space. Finally, the <code> > </code> symbol redirects the compressed output into a new file called <code>ENCFF535OGL_subset.fastq.gz </code>. Once this runs, you will have two files in your <code> raw_data</code> folder — the full original dataset and a small, lightweight subset that is ideal for testing the rest of your pipeline quickly and efficiently.
+          </p>
+          <blockquote>
+            <p><strong>Reproducibility note:</strong> The <code>-s</code> seed value is arbitrary — you can use any integer. What matters is that you record the value you chose. Anyone who runs the same command with the same seed on the same input file will get an identical subset, making your test runs fully reproducible.</p>
+          </blockquote>
+        </section>
+
+        <section id="running-fastqc">
+          <h2>Running FastQC</h2>
+          <p>
+            Now that we have our aliquot, it is time to run the quality assessment — the computational equivalent of running a Bioanalyzer. We want the results to land in our organized <code>results/fastqc</code> folder rather than cluttering the <code>raw_data</code> directory, for the same reason you wouldn't run a gel on your bench and leave the cassette next to your stock tubes.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>fastqc ENCFF535OGL_subset.fastq.gz -o ../results/fastqc/</code></pre>
+          </div>
+          <p>
+            This command invokes the FastQC tool on our subsampled aliquot, <code>ENCFF535OGL_subset.fastq.gz</code>. The <code>-o</code> flag tells FastQC where to write its output files, and the path <code>../results/fastqc/</code> uses <code>..</code> to step up one directory from <code>raw_data</code> back to the <code>atacseq</code> project root, then navigates down into the dedicated results folder. When the analysis finishes, FastQC will print a short confirmation to the screen:
+          </p>
+          <div class="code-cell">
+            <pre><code>Analysis complete for ENCFF535OGL_subset.fastq.gz</code></pre>
+          </div>
+          <p>
+            This message confirms that the tool ran successfully and that the output files are now waiting in <code>results/fastqc/</code>, cleanly separated from the raw data and ready to be opened and interpreted.
+          </p>
+        </section>
+
+        <section id="viewing-report">
+          <h2>Viewing the Report</h2>
+          <p>
+            FastQC does not print the results to the terminal. Instead, it generates a visual HTML report — a self-contained web page you can open in any browser, just like the output of a plate reader that generates a PDF.
+            Let's move into the results folder to find it:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd ../results/fastqc/
+ls</code></pre>
+          </div>
+          <p>
+            You will see two files:
+          </p>
+          <ul>
+            <li><code>ENCFF535OGL_subset_fastqc.zip</code> — a compressed archive containing the raw data tables and individual plot images.</li>
+            <li><code>ENCFF535OGL_subset_fastqc.html</code> — the visual report you want to open.</li>
+          </ul>
+          <p>
+            Open the report in your default browser:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>open ENCFF535OGL_subset_fastqc.html</code></pre>
+          </div>
+          <blockquote>
+            <p><strong>Linux users:</strong> Replace <code>open</code> with <code>xdg-open</code> to achieve the same result.</p>
+          </blockquote>
+
+          <h3 id="traffic-lights">Reading the "Traffic Lights"</h3>
+          <p>
+            When the report opens in your browser, you will see a navigation panel on the left listing a series of quality modules. Each module is marked with one of three icons:
+          </p>
+          <ul>
+            <li>Green check (Pass) — the metric looks normal for a standard sequencing library.</li>
+            <li>Orange exclamation mark (Warning) — the metric is slightly unusual and worth investigating.</li>
+            <li>Red X (Fail) — the metric deviates significantly from what FastQC expects for a typical genomic DNA library.</li>
+          </ul>
+          <p>
+            Do not panic if you see red. In wet lab terms, a "Fail" here is like a pH meter beeping, it doesn't always mean the sample is trash; it just means the data looks different from what FastQC considers "standard." FastQC was originally designed with whole-genome shotgun libraries in mind, and ATAC-seq data violates several of those assumptions by design.
+          </p>
+          <p>
+            Since this is high-quality ENCODE data, you should mostly see green checks. You may see a warning or even a fail in modules like Per base sequence content or Sequence Duplication Levels this is often an artifact of the underlying ATAC-seq biology (such as Tn5 insertion bias or the inherent enrichment of open chromatin regions) rather than a genuine technical failure.
+          </p>
+          <blockquote>
+            <p><strong>Key takeaway:</strong> FastQC flags tell you where to look, not whether your data is good or bad. Interpreting those flags in the context of your specific assay is what separates a mechanical analysis from a thoughtful one. We will dissect every module of the FastQC report in detail in Chapter 5.</p>
+          </blockquote>
+        </section>
+
+        <section id="troubleshooting">
+          <h2>Troubleshooting</h2>
+          <ul>
+            <li>
+              <strong><code>wget: command not found</code></strong> — This means <code>wget</code> is not installed in your environment. Run <code>conda install wget</code> inside your <code>bio-tools</code> environment, then try the download command again.
+            </li>
+            <li>
+              <strong><code>seqtk: command not found</code></strong> — Make sure you have activated the correct environment. Run <code>conda activate bio-tools</code> and verify that your prompt shows <code>(bio-tools)</code>. If it does and <code>seqtk</code> still isn't found, reinstall it with <code>conda install seqtk</code>.
+            </li>
+            <li>
+              <strong>"Directory does not exist" when running FastQC:</strong> The output directory <code>../results/fastqc/</code> must already exist before FastQC can write to it. Create it with <code>mkdir -p ~/atacseq/results/fastqc</code> and run the command again. Remember, you can use <code>pwd</code> at any time to check where you are.
+            </li>
+            <li>
+              <strong>Download interrupted or file seems too small:</strong> Large files can fail partway through if your internet connection drops. Delete the partial file with <code>rm ENCFF535OGL.fastq.gz</code> and re-run the <code>wget</code> command. Comparing the file size with <code>ls -lh</code> against the ENCODE portal listing can confirm whether the download is complete.
+            </li>
+          </ul>
+        </section>
+
+        <section id="summary">
+          <h2>Next Step</h2>
+          <p>
+            In this chapter, you completed the first hands-on step of the ATAC-seq pipeline. You activated your Conda environment, downloaded real sequencing data from ENCODE, created a reproducible subset with <code>seqtk</code>, ran FastQC on that subset, and opened the resulting quality report. You also learned that FastQC's traffic-light system flags deviations from a "standard" library and that for assays like ATAC-seq, some of those flags are expected rather than alarming.
+          </p>
+          <p>
+            However, seeing a red X or warning flag can be unsettling if you don't know the context. In Chapter 5, we will dissect every plot in the FastQC report to learn how to distinguish between a failed experiment and expected biological artifacts, so you can make an informed decision about whether to proceed with your data.
+          </p>
+        </section>
+
+        <section id="references" class="references">
+          <h2>References</h2>
+          <ol>
+            <li id="ref-1">Andrews, S. (2010). FastQC: A Quality Control Tool for High Throughput Sequence Data. <a href="https://www.bioinformatics.babraham.ac.uk/projects/fastqc/">https://www.bioinformatics.babraham.ac.uk/projects/fastqc/</a></li>
+            <li id="ref-2">The ENCODE Project Consortium (2012). An integrated encyclopedia of DNA elements in the human genome. <em>Nature</em>, 489(7414), 57–74.</li>
+            <li id="ref-3">Li, H. (2023). seqtk: Toolkit for processing sequences in FASTA/Q formats. <a href="https://github.com/lh3/seqtk">https://github.com/lh3/seqtk</a></li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <nav class="chapter-nav">
+    <a href="chapter_3.html">
+      <span class="nav-arrow">&larr;</span>
+      <span class="nav-direction">Previous</span>
+    </a>
+    <a href="chapter_5.html">
+        <span class="nav-direction">Next</span>
+        <span class="nav-arrow">&rarr;</span>
+    </a>
+  </nav>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Bioinformatics by Yerkem Shakhman. Built for wet lab researchers and students in computational biology.</p>
+  </footer>
+
+  <script src="blog-post-ui.js"></script>
+</body>
+</html>

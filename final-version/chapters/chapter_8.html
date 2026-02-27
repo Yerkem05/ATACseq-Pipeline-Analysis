@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peak Calling &amp; QC</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="scroll-progress-wrap"><div class="scroll-progress-bar"></div></div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-title">Bioinformatics</a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+    </nav>
+  </header>
+
+  <article class="blog-article">
+    <header class="article-header">
+      <h1 class="article-title">Peak Calling &amp; QC – From Maps to Mountains</h1>
+      <p class="article-subtitle">In this section, we will conceptualize peak calling as the statistical identification of signal over background noise, quantify the impact of filtering steps by comparing raw versus clean alignment files, explain the biological necessity of the <code>--shift</code> and <code>--extsize</code> parameters for ATAC-seq data, execute the MACS2 algorithm to identify open chromatin regions, and interpret the standard output files (<code>narrowPeak</code>, <code>summits</code>, <code>xls</code>) that contain your biological discoveries.</p>
+      <figure class="article-figure">
+        <img src="../images/atac_seq.png" alt="ATAC-seq peak calling overview">
+      </figure>
+      <div class="article-meta">
+        <div class="meta-column">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Yerkem Shakhman</span>
+        </div>
+        <div class="meta-column">
+          <span class="meta-label">Chapter</span>
+          <span class="meta-value">8 — Peak Calling &amp; QC</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <aside class="article-toc">
+        <h2 class="toc-title">Contents</h2>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li><a href="#the-concept">The Concept: From Maps to Mountains</a></li>
+            <li>
+              <a href="#reality-check">Phase 1: The Reality Check</a>
+              <ul>
+                <li><a href="#check-dirty">Check the "Dirty" File</a></li>
+                <li><a href="#check-clean">Check the "Clean" File</a></li>
+              </ul>
+            </li>
+            <li><a href="#the-tool">Phase 2: The Tool (MACS2)</a></li>
+            <li>
+              <a href="#execution">Phase 3: The Execution</a>
+              <ul>
+                <li><a href="#biological-twist">The Biological Twist</a></li>
+                <li><a href="#the-command">The Command</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="#the-treasure">Phase 4: The Treasure</a>
+              <ul>
+                <li><a href="#narrowpeak">The "Map": narrowPeak</a></li>
+                <li><a href="#summits">The "Summit": summits.bed</a></li>
+                <li><a href="#spreadsheet">The "Spreadsheet": peaks.xls</a></li>
+              </ul>
+            </li>
+            <li><a href="#summary">Next Step</a></li>
+            <li><a href="#references">References</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="article-content">
+
+        <section id="the-concept">
+          <h2>The Concept: From Maps to Mountains</h2>
+          <p>
+            In the previous chapter, we successfully aligned our reads to the genome. We now have a file (<code>final_clean_peaks.bed</code>) containing coordinates for thousands of DNA fragments. But a list of coordinates is not a biological result. We need to answer the core question of the experiment: <strong>Where is the chromatin open?</strong>
+          </p>
+          <p>
+            Imagine looking at a map of a city where every person is represented by a tiny dot. If you wanted to find the stadiums or concert halls, you would look for the places where thousands of dots are piled on top of each other. In bioinformatics, these "piles" of reads are called <strong>Peaks</strong>.
+          </p>
+          <p>
+            A "Peak" represents a genomic region where the Tn5 transposase was able to access the DNA frequently, implying that the chromatin there was open and active. <strong>Peak Calling</strong> is the statistical process of distinguishing these significant mountains of reads from the random, scattered stones (background noise) across the genome.
+          </p>
+        </section>
+
+        <section id="reality-check">
+          <h2>Phase 1: The Reality Check (Quantifying Your Filter)</h2>
+          <p>
+            Before we call peaks, we must perform a "Sanity Check" on the work we did in the Alignment chapter. We claimed that we filtered out PCR duplicates and low-quality reads, but did it actually work?
+          </p>
+          <p>
+            We can verify this using a simple command called <code>wc</code> (Word Count). By using the <code>-l</code> flag, we ask the computer to count the number of lines (reads) in our files.
+          </p>
+
+          <h3 id="check-dirty">Step 1: Check the "Dirty" File</h3>
+          <p>
+            First, let's look at the alignment file <em>before</em> we ran the filters.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>wc -l results/chromap/aligned.bed</code></pre>
+          </div>
+          <p>
+            <strong>Expected Output:</strong>
+          </p>
+          <div class="code-cell">
+            <pre><code>44509 results/chromap/aligned.bed</code></pre>
+          </div>
+
+          <h3 id="check-clean">Step 2: Check the "Clean" File</h3>
+          <p>
+            Now, let's look at the file <em>after</em> we applied the duplicate removal and quality filters.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>wc -l results/chromap/aligned_filtered.bed</code></pre>
+          </div>
+          <p>
+            <strong>Expected Output:</strong>
+          </p>
+          <div class="code-cell">
+            <pre><code>37750 results/chromap/aligned_filtered.bed</code></pre>
+          </div>
+
+          <p>
+            Compare the numbers: <strong>44,509 vs 37,750</strong>. You effectively removed <strong>6,759 reads</strong> (about 15% of your data).
+          </p>
+          <blockquote>
+            <p><strong>Is this bad?</strong> No, this is excellent! These were likely PCR duplicates (artificial clones) or low-confidence mappings that would have created false signals in your analysis. You have successfully "de-noised" your data.</p>
+          </blockquote>
+        </section>
+
+        <section id="the-tool">
+          <h2>Phase 2: The Tool (MACS2)</h2>
+          <p>
+            To find our peaks, we will use a tool called <strong>MACS2</strong> (Model-based Analysis for ChIP-Seq) <a href="#ref-1" class="footnote-ref">[1]</a>.
+          </p>
+          <p>
+            Although the tool was originally designed for ChIP-seq (detecting protein binding), its mathematics are so robust that it became the "Gold Standard" for ATAC-seq peak calling as well.
+          </p>
+          <p>
+            First, let's install it into our environment.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda activate bio-tools
+
+conda install -c bioconda macs2</code></pre>
+          </div>
+          <p>
+            Next, we need a place to store our peak files. Following our "Tidy Data" principles, let's create a dedicated folder.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd atacseq
+
+mkdir -p results/peaks</code></pre>
+          </div>
+        </section>
+
+        <section id="execution">
+          <h2>Phase 3: The Execution (Calling the Peaks)</h2>
+          <p>
+            This is the single most important command in the analysis. However, standard MACS2 settings are designed for ChIP-seq. For ATAC-seq, we must modify the parameters to account for the biology of the Tn5 transposase.
+          </p>
+
+          <h3 id="biological-twist">The Biological Twist</h3>
+          <p>
+            The Tn5 transposase binds to DNA as a <strong>dimer</strong> (two copies attached). When it cuts the DNA, it actually sits on a 9 bp region. This means the "cut site" recorded by the sequencer is slightly offset from the <em>actual</em> center of the open chromatin.
+          </p>
+          <p>
+            To fix this, we use <code>--shift -100</code> and <code>--extsize 200</code>. In plain English: this tells the software, "Take the start of the read, shift it back 100 bases, and then extend it 200 bases to smooth it out." This centers our signal exactly over the open chromatin region.
+          </p>
+
+          <h3 id="the-command">The Command</h3>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>macs2 callpeak -t results/chromap/final_clean_peaks.bed \
+-f BED \
+-n results/peaks/ENCFF535OGL \
+-g mm \
+--nomodel \
+--shift -100 \
+--extsize 200 \
+-q 0.01</code></pre>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Value</th>
+                <th>Explanation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>-t</code></td>
+                <td><code>final_clean_peaks.bed</code></td>
+                <td>Treatment file — your clean, filtered reads.</td>
+              </tr>
+              <tr>
+                <td><code>-f</code></td>
+                <td><code>BED</code></td>
+                <td>Input format. We are using the BED file produced by Chromap.</td>
+              </tr>
+              <tr>
+                <td><code>-g</code></td>
+                <td><code>mm</code></td>
+                <td>Genome size (<em>Mus musculus</em> / Mouse). Essential for calculating statistics.</td>
+              </tr>
+              <tr>
+                <td><code>--nomodel</code></td>
+                <td>—</td>
+                <td>Tells MACS2 not to estimate fragment length — we already know it because this is ATAC-seq.</td>
+              </tr>
+              <tr>
+                <td><code>--shift</code></td>
+                <td><code>-100</code></td>
+                <td>Shifts read starts back 100 bp to correct for the Tn5 insertion offset.</td>
+              </tr>
+              <tr>
+                <td><code>--extsize</code></td>
+                <td><code>200</code></td>
+                <td>Extends fragments to 200 bp, centering signal over open chromatin.</td>
+              </tr>
+              <tr>
+                <td><code>-q</code></td>
+                <td><code>0.01</code></td>
+                <td>False Discovery Rate cutoff. Only peaks with q &lt; 0.01 are reported.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p>
+            MACS2 will print a detailed log of its statistical modeling to your screen.
+          </p>
+          <div class="code-cell">
+            <pre><code>INFO  @ Wed, 10 Dec 2025 01:17:49: #1 read tag files...
+INFO  @ Wed, 10 Dec 2025 01:17:49: #1 read treatment tags...
+INFO  @ Wed, 10 Dec 2025 01:17:49: Detected format is: BED
+INFO  @ Wed, 10 Dec 2025 01:17:49: #1 tag size is determined as 47 bps
+INFO  @ Wed, 10 Dec 2025 01:17:49: #1 total tags in treatment: 37750
+...
+INFO  @ Wed, 10 Dec 2025 01:17:49: #3 Call peaks...
+INFO  @ Wed, 10 Dec 2025 01:17:49: #3 write output to results/peaks/ENCFF535OGL_peaks.narrowPeak ...</code></pre>
+          </div>
+          <p>
+            If you see <strong>"Done!"</strong> or the log finishes without an "ERROR" message, you have successfully mined your data.
+          </p>
+        </section>
+
+        <section id="the-treasure">
+          <h2>Phase 4: The Treasure (Interpreting Results)</h2>
+          <p>
+            Go to your results folder and look at what you created.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>ls results/peaks/</code></pre>
+          </div>
+          <p>
+            You will see three key files. These are the standard output formats used by almost all downstream tools (like R, Homer, or Genome Browsers).
+          </p>
+
+          <h3 id="narrowpeak">1. The "Map": <code>ENCFF535OGL_peaks.narrowPeak</code></h3>
+          <p>
+            This is the most important file. It is a text file (BED format) listing the exact coordinates of every open chromatin region found.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Content</th>
+                <th>Example</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>Chromosome</td>
+                <td>chr19</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>Start of the peak</td>
+                <td>3,204,500</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>End of the peak</td>
+                <td>3,205,200</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            You will load this file into genome browsers to visualize the "mountains" or send it to tools like Homer to ask "Which genes are near these peaks?"
+          </p>
+
+          <h3 id="summits">2. The "Summit": <code>ENCFF535OGL_summits.bed</code></h3>
+          <p>
+            While the <code>narrowPeak</code> gives you the full width of the mountain (from the base on the left to the base on the right), this file gives you a single-pixel (1 bp) coordinate for the absolute <strong>highest point</strong> of the peak.
+          </p>
+          <blockquote>
+            <p><strong>Biological Meaning:</strong> This is likely the exact center of the regulatory element (enhancer or promoter) where transcription factors are binding.</p>
+          </blockquote>
+
+          <h3 id="spreadsheet">3. The "Spreadsheet": <code>ENCFF535OGL_peaks.xls</code></h3>
+          <p>
+            Despite the extension, this is a text file you can open in Excel. It contains the same information as the <code>narrowPeak</code> file but includes extra statistics like <strong>fold_enrichment</strong> (how much higher is this peak compared to background noise?) and <strong>-log10(pvalue)</strong> (how statistically significant is it?).
+          </p>
+        </section>
+
+        <section id="summary">
+          <h2>Next Step</h2>
+          <p>
+            You have transformed raw, noisy sequencing data into a concise list of biologically meaningful genomic locations. Each peak in your output represents an open chromatin region — a site where transcription factors can bind and gene regulation occurs.
+          </p>
+          <p>
+            In this chapter, you verified the effectiveness of your alignment filters, learned why MACS2 parameters must be adjusted for ATAC-seq biology, executed peak calling to identify open chromatin regions, and interpreted the three standard output files that contain your discoveries. In the next chapter, we will visualize these files to verify our results with our own eyes.
+          </p>
+        </section>
+
+        <section id="references" class="references">
+          <h2>References</h2>
+          <ol>
+            <li id="ref-1">Zhang, Y., Liu, T., Meyer, C.A., Eeckhoute, J., Johnson, D.S., Bernstein, B.E., Nusbaum, C., Myers, R.M., Brown, M., Li, W. and Liu, X.S. (2008). Model-based Analysis of ChIP-Seq (MACS). <em>Genome Biology</em>, 9(9), R137.</li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <nav class="chapter-nav">
+    <a href="chapter_7.html">
+      <span class="nav-arrow">&larr;</span>
+      <span class="nav-direction">Previous</span>
+    </a>
+    <a href="chapter_9.html">
+      <span class="nav-direction">Next</span>
+      <span class="nav-arrow">&rarr;</span>
+    </a>
+  </nav>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Bioinformatics by Yerkem Shakhman. Built for wet lab researchers and students in computational biology.</p>
+  </footer>
+
+  <script src="blog-post-ui.js"></script>
+</body>
+</html>

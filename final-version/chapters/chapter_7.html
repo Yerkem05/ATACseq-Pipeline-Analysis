@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genome Alignment</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="scroll-progress-wrap"><div class="scroll-progress-bar"></div></div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-title">Bioinformatics</a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+    </nav>
+  </header>
+
+  <article class="blog-article">
+    <header class="article-header">
+      <h1 class="article-title">Genome Alignment – Placing the Puzzle Pieces</h1>
+      <p class="article-subtitle">In this section, we will conceptualize genome alignment as mapping millions of short DNA fragments to a reference coordinate system, justify the selection of Chromap over traditional tools like Bowtie2 or STAR for ATAC-seq analysis, construct a genome index to allow for rapid data querying, execute an alignment workflow that maps reads, removes technical artifacts, and filters for quality in a single step, and clean the dataset by removing mitochondrial noise to prepare for peak calling.</p>
+      <figure class="article-figure">
+        <img src="../images/chromosome.png" alt="Chromosome reference used for genome alignment">
+      </figure>
+      <div class="article-meta">
+        <div class="meta-column">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Yerkem Shakhman</span>
+        </div>
+        <div class="meta-column">
+          <span class="meta-label">Chapter</span>
+          <span class="meta-value">7 — Genome Alignment</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <aside class="article-toc">
+        <h2 class="toc-title">Contents</h2>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li><a href="#the-challenge">The Challenge: A Million Piece Puzzle</a></li>
+            <li>
+              <a href="#tool-selection">Tool Selection: Why Chromap?</a>
+              <ul>
+                <li><a href="#aligner-comparison">Know Your Aligners</a></li>
+              </ul>
+            </li>
+            <li><a href="#installation">Phase 1: Installation and Setup</a></li>
+            <li>
+              <a href="#reference-genome">Phase 2: The Reference Genome</a>
+              <ul>
+                <li><a href="#download-reference">Download the Reference</a></li>
+                <li><a href="#build-index">Build the Index</a></li>
+              </ul>
+            </li>
+            <li><a href="#alignment">Phase 3: The Alignment</a></li>
+            <li>
+              <a href="#filtering">Phase 4: The Clean-Up</a>
+              <ul>
+                <li><a href="#align-with-filters">Align with Filters</a></li>
+                <li><a href="#remove-mito">Remove Mitochondrial Reads</a></li>
+              </ul>
+            </li>
+            <li><a href="#summary">Next Step</a></li>
+            <li><a href="#references">References</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="article-content">
+
+        <section id="the-challenge">
+          <h2>The Challenge: A Million Piece Puzzle</h2>
+          <p>
+            In the previous chapters, we quality-checked and trimmed our data. We now hold a file containing approximately one million "clean" DNA sequences, each about 48 base pairs long. However, these sequences are currently meaningless strings of letters (A, C, G, T). We do not know <em>where</em> in the genome they came from.
+          </p>
+          <p>
+            Imagine you have a 1,000,000-piece puzzle, but no box to guide you. Genome alignment is the process of taking each tiny puzzle piece (a read) and finding its exact location on the box picture (the <strong>Reference Genome</strong>).
+          </p>
+          <p>
+            For our mouse data, we use the <strong>mm10</strong> reference genome (also known as GRCm38). Our goal is to ask the computer: "Does this 48 bp sequence match a gene on Chromosome 1? Or a regulatory region on Chromosome 19?" Once we map all the reads, we will look for "piles" of reads stacked in one location — these piles indicate open chromatin.
+          </p>
+        </section>
+
+        <section id="tool-selection">
+          <h2>Tool Selection: Why Chromap?</h2>
+          <p>
+            In bioinformatics, choosing the right tool is half the battle. You may have heard of "classic" aligners like <strong>Bowtie2</strong> <a href="#ref-2" class="footnote-ref">[2]</a> or <strong>BWA</strong>, or perhaps <strong>STAR</strong> <a href="#ref-3" class="footnote-ref">[3]</a> for RNA-seq. For this handbook, we have chosen <strong>Chromap</strong> <a href="#ref-1" class="footnote-ref">[1]</a>.
+          </p>
+          <p>
+            Why deviate from the classics? In a traditional pipeline (like the ones used in major consortiums), alignment is a multi-step, slow process:
+          </p>
+          <ol>
+            <li>Align reads with Bowtie2 (Time: Hours).</li>
+            <li>Sort the huge output file with Samtools (Time: Hours).</li>
+            <li>Mark and remove PCR duplicates with Picard (Time: Hours).</li>
+          </ol>
+          <p>
+            <strong>Chromap</strong> changes the game. It is a modern tool optimized specifically for chromatin biology (ATAC-seq, ChIP-seq). It is incredibly fast and, most importantly, it can perform alignment, duplicate removal, and quality filtering <strong>all at once</strong>.
+          </p>
+
+          <h3 id="aligner-comparison">Tool Spotlight: Know Your Aligners</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Best Application</th>
+                <th>Advantages</th>
+                <th>Disadvantages</th>
+                <th>Final Choice</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Chromap</strong></td>
+                <td><strong>ATAC-seq, ChIP-seq, Hi-C</strong></td>
+                <td><strong>Ultra-fast speed.</strong> Handles trimming, mapping, and duplicate removal in one command. Optimized for chromatin data.</td>
+                <td>Newer tool, so fewer community tutorials exist compared to Bowtie2.</td>
+                <td><strong>SELECTED:</strong> The most efficient choice for modern ATAC-seq pipelines.</td>
+              </tr>
+              <tr>
+                <td><strong>Bowtie2</strong></td>
+                <td><strong>Standard DNA (WGS, ChIP)</strong></td>
+                <td><strong>The "Gold Standard."</strong> Highly accurate, robust, and cited in thousands of papers.</td>
+                <td>Slower than Chromap. Requires separate, manual steps for sorting and cleaning data.</td>
+                <td><strong>Reference Only:</strong> Good for traditional pipelines, but too slow for our needs.</td>
+              </tr>
+              <tr>
+                <td><strong>STAR</strong></td>
+                <td><strong>RNA-seq</strong></td>
+                <td>Handles "spliced" reads (jumping over introns). Essential for RNA analysis.</td>
+                <td>High Memory Usage. Designed to align RNA, not genomic DNA.</td>
+                <td><strong>SKIP:</strong> Chemically incorrect for ATAC-seq (which sequences DNA).</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="installation">
+          <h2>Phase 1: Installation and Setup</h2>
+          <p>
+            First, we must install Chromap into our environment.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>conda activate bio-tools
+
+conda install -c bioconda -c conda-forge chromap</code></pre>
+          </div>
+          <p>
+            Next, we need to prepare our files. Following our "Tidy Data" principles, let's create a dedicated folder for our alignment results so they don't get lost.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd atacseq
+
+mkdir -p results/chromap</code></pre>
+          </div>
+        </section>
+
+        <section id="reference-genome">
+          <h2>Phase 2: The Reference Genome (Toy vs. Real)</h2>
+          <p>
+            To map our reads, we need a map. In a professional research setting using a High-Performance Computing (HPC) cluster, you would download the <strong>entire</strong> mouse genome (all 20 chromosomes + scaffolds).
+          </p>
+          <p>
+            However, indexing a full mammalian genome requires significant RAM (often &gt;32 GB), which will crash a standard laptop. Since this handbook is designed to be accessible to everyone, we will use a <strong>"Toy Reference"</strong>: we will align our reads only to <strong>Chromosome 19</strong>. This single chromosome is small and gene-rich, allowing us to demonstrate the exact principles of alignment in seconds rather than hours.
+          </p>
+
+          <h3 id="download-reference">Step 1: Download the Reference</h3>
+          <p>
+            We will download the sequence for Chromosome 19 from the UCSC Genome Browser database.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd reference_data
+
+wget https://hgdownload.soe.ucsc.edu/goldenPath/mm10/chromosomes/chr19.fa.gz
+
+gunzip chr19.fa.gz</code></pre>
+          </div>
+
+          <h3 id="build-index">Step 2: Build the Index</h3>
+          <p>
+            Before a computer can search a genome, it must build an <strong>Index</strong>. Think of this like the index at the back of a massive textbook. Without it, finding a specific sentence would require reading the whole book every time. With an index, the computer can jump instantly to the right location.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>chromap -i -r chr19.fa -o chr19.index</code></pre>
+          </div>
+          <p>
+            The <code>-i</code> flag tells Chromap to run in index mode, <code>-r</code> specifies the input reference FASTA file, and <code>-o</code> names the output index file. When the command completes, you should see:
+          </p>
+          <div class="code-cell">
+            <pre><code>Build index for the reference.
+Kmer length: 17, window size: 7
+Loaded all sequences successfully...
+Collecting minimizers...
+Sorting minimizers...
+Index built successfully.</code></pre>
+          </div>
+        </section>
+
+        <section id="alignment">
+          <h2>Phase 3: The Alignment (Mapping the Reads)</h2>
+          <p>
+            Now we are ready to map. We will take our <strong>trimmed</strong> reads from the previous chapter and align them to our new <strong>chr19 index</strong>.
+          </p>
+          <p>
+            For this specific step, we are going to run a "Raw Alignment" first, just to see how it works. We will not apply filters yet.
+          </p>
+          <p>
+            <strong>Note on Sequencing Type:</strong> In a real experiment, ATAC-seq is almost always <strong>Paired-End</strong> (Read 1 and Read 2), because knowing the distance between the two ends tells us the size of the DNA fragment. Chromap has a specific flag <code>--preset atac</code> that automatically handles paired-end data. However, for this "Toy Dataset," we are processing it as <strong>Single-End</strong> to keep things simple and fast. Therefore, we use the standard flags.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd ..
+
+chromap -x reference_data/chr19.index \
+-r reference_data/chr19.fa \
+-1 results/trimmed/ENCFF535OGL_subset_trimmed.fastq.gz \
+-o results/chromap/aligned.bed</code></pre>
+          </div>
+          <p>
+            The <code>-x</code> flag points to the index we built, <code>-r</code> provides the reference FASTA, <code>-1</code> specifies the input reads, and <code>-o</code> names the output BED file. When the alignment finishes, you should see output similar to:
+          </p>
+          <div class="code-cell">
+            <pre><code>Mapping...
+Read file: results/trimmed/ENCFF535OGL_subset_trimmed.fastq.gz
+Total reads: 1,000,000
+Mapped reads: 85,432  (Note: Low mapping is expected because we are only mapping to 1 chromosome out of 20!)</code></pre>
+          </div>
+          <p>
+            Don't panic if your mapping rate is low. Since we threw away 95% of the genome (Chr 1–18, X, Y) to save RAM, we expect only the reads that truly belong to Chr 19 to align.
+          </p>
+        </section>
+
+        <section id="filtering">
+          <h2>Phase 4: The Clean-Up (Filtering)</h2>
+          <p>
+            We now have an aligned file (<code>aligned.bed</code>), but it is "dirty." It contains three types of villains that ruin ATAC-seq analysis:
+          </p>
+          <ol>
+            <li><strong>Low-Quality Maps:</strong> Reads where the aligner wasn't sure if it belonged to gene A or gene B. We filter these by <strong>Mapping Quality (MapQ) Score</strong>. We typically want a score &gt; 30.</li>
+            <li><strong>PCR Duplicates:</strong> During library prep, PCR can accidentally make millions of copies of the exact same DNA fragment. These are artificial clones, not real data. We must remove them.</li>
+            <li><strong>Mitochondrial Reads:</strong> The Tn5 enzyme loves mitochondrial DNA because it is "open" (no nucleosomes). A huge portion of ATAC-seq data is just mitochondrial noise.</li>
+          </ol>
+          <p>
+            We will now re-run the alignment, but this time we will turn on Chromap's powerful internal filters to handle villains #1 and #2 automatically.
+          </p>
+
+          <h3 id="align-with-filters">Step 1: Align with Filters</h3>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>chromap -x reference_data/chr19.index \
+-r reference_data/chr19.fa \
+-1 results/trimmed/ENCFF535OGL_subset_trimmed.fastq.gz \
+-o results/chromap/aligned_filtered.bed \
+--remove-pcr-duplicates \
+-q 30</code></pre>
+          </div>
+          <p>
+            The <code>-q 30</code> flag tells Chromap to only keep reads with a mapping quality above 30 (high confidence), and <code>--remove-pcr-duplicates</code> automatically detects and deletes PCR clones. By combining these two flags, we handle quality filtering and deduplication in a single pass — a task that would require three separate tools in a traditional pipeline.
+          </p>
+          <blockquote>
+            <p><strong>Why <code>.bed</code> format?</strong> You may notice we are outputting a <code>.bed</code> file instead of the massive <code>.bam</code> files used in older pipelines. Chromap is optimized to produce BED fragment files. They are significantly smaller (text-based) and faster to generate, fitting our goal of a lightweight, efficient pipeline. They contain all the necessary information (Chromosome, Start, End) for the next step: Peak Calling.</p>
+          </blockquote>
+
+          <h3 id="remove-mito">Step 2: Remove Mitochondrial Reads</h3>
+          <p>
+            Chromap handles duplicates and quality, but it leaves the Mitochondria ("chrM") behind. Since our output is a simple text file, we can use the command-line tool <code>grep</code> to physically remove any line that mentions "chrM".
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>grep -v "chrM" results/chromap/aligned_filtered.bed > results/chromap/final_clean_peaks.bed</code></pre>
+          </div>
+          <p>
+            The <code>-v</code> flag in <code>grep</code> means "invert match" — select every line that does <em>not</em> contain the pattern "chrM." The result is redirected into a new file called <code>final_clean_peaks.bed</code>, which now contains only nuclear DNA reads.
+          </p>
+        </section>
+
+        <section id="summary">
+          <h2>Next Step</h2>
+          <p>
+            You now have a file named <strong><code>final_clean_peaks.bed</code></strong>. This file is the gold standard of your raw data. It contains only unique, high-quality, non-mitochondrial reads that have been successfully mapped to the genome. Each line in this file represents a real, biological instance of open chromatin.
+          </p>
+          <p>
+            In this chapter, you learned why genome alignment is necessary, justified the choice of Chromap over traditional multi-tool workflows, built a reference genome index for Chromosome 19, executed both a raw and a filtered alignment, and cleaned the output by removing mitochondrial noise. In the next chapter, we will stack these reads on top of each other to find the "mountains" of data — the Peaks.
+          </p>
+        </section>
+
+        <section id="references" class="references">
+          <h2>References</h2>
+          <ol>
+            <li id="ref-1">Zhang, H., Song, L., Wang, X., Cheng, H., Wang, C., Meyer, C.A., Liu, T., Tang, M., Alber, S., Hou, Z., et al. (2021). Fast alignment and preprocessing of chromatin profiles with Chromap. <em>Nature Communications</em>, 12, 6566.</li>
+            <li id="ref-2">Langmead, B. and Salzberg, S.L. (2012). Fast gapped-read alignment with Bowtie 2. <em>Nature Methods</em>, 9(4), 357–359.</li>
+            <li id="ref-3">Dobin, A., Davis, C.A., Schlesinger, F., Drenkow, J., Zaleski, C., Jha, S., Batut, P., Chaisson, M. and Gingeras, T.R. (2013). STAR: ultrafast universal RNA-seq aligner. <em>Bioinformatics</em>, 29(1), 15–21.</li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <nav class="chapter-nav">
+    <a href="chapter_6.html">
+      <span class="nav-arrow">&larr;</span>
+      <span class="nav-direction">Previous</span>
+    </a>
+    <a href="chapter_8.html">
+      <span class="nav-direction">Next</span>
+      <span class="nav-arrow">&rarr;</span>
+    </a>
+  </nav>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Bioinformatics by Yerkem Shakhman. Built for wet lab researchers and students in computational biology.</p>
+  </footer>
+
+  <script src="blog-post-ui.js"></script>
+</body>
+</html>

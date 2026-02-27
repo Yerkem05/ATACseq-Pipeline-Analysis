@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Organization: How to Stop Losing Your Data</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="scroll-progress-wrap"><div class="scroll-progress-bar"></div></div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-title">Bioinformatics</a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+    </nav>
+  </header>
+
+  <article class="blog-article">
+    <header class="article-header">
+      <h1 class="article-title">Project Organization: How to Stop Losing Your Data</h1>
+      <p class="article-subtitle">Welcome to the command line. If you are coming from a wet lab background, looking at a blank terminal window with a blinking cursor can feel like walking into a lab where the lights are off, the benches are empty, and you don't know where the pipettes are stored. This chapter is about turning that empty black box into a fully organized, functional workspace. In the wet lab, you wouldn't start an expensive ATAC-seq library preparation on a cluttered desk covered in old coffee cups and loose papers. You would wipe down the bench, arrange your racks, label your tubes, and set out your reagents. We are going to do the exact same thing here, but instead of plastic tubes and buffers, we are organizing directories (folders) and files.</p>
+      <figure class="article-figure">
+        <img src="../images/terminal_finder.png" alt="ATAC-seq analysis pipeline overview">
+      </figure>
+      <div class="article-meta">
+        <div class="meta-column">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Yerkem Shakhman</span>
+        </div>
+        <div class="meta-column">
+          <span class="meta-label">Chapter</span>
+          <span class="meta-value">2 — Project Organization</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <aside class="article-toc">
+        <h2 class="toc-title">Contents</h2>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li><a href="#philosophy">The Philosophy of Structure</a></li>
+            <li><a href="#foundation">Laying the Foundation</a></li>
+            <li>
+              <a href="#departments">Building the Departments</a>
+              <ul>
+                <li><a href="#dept-raw">raw_data</a></li>
+                <li><a href="#dept-ref">reference_data</a></li>
+                <li><a href="#dept-scripts">scripts</a></li>
+                <li><a href="#dept-logs">logs</a></li>
+                <li><a href="#dept-meta">meta</a></li>
+              </ul>
+            </li>
+            <li><a href="#results">Preparing for Results</a></li>
+            <li>
+              <a href="#verification">Verification</a>
+              <ul>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+              </ul>
+            </li>
+            <li><a href="#next-step">Next Step</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="article-content">
+        <section id="philosophy">
+          <h2>The Philosophy of Structure</h2>
+          <p>
+            <strong>Why does the folder layout matter?</strong> Imagine you finish your ATAC-seq experiment, generate beautiful peaks, and publish a paper. Two years later, a graduate student wants to re-analyze your data to look for a specific transcription factor footprint. They open your project folder and find a pile of files named things like <em>analysis_final_v2.txt</em> and <em>test_run_new.bam</em> all dumped in one place with no clear structure. At that point, the data is effectively dead, there is no way to tell which file was the raw input, which was the filtered output, or which reference genome was used. Good folder organization exists precisely to prevent this, and the principle behind it is reproducibility.
+          </p>
+          <p>
+            Raw data is the foundation of everything and must be treated as sacred. Just like a clinical tissue sample in a wet lab, if your raw sequencing files are lost, overwritten, or corrupted, there is no recovering them without spending thousands of dollars to re-sequence. They need a dedicated, protected location that nothing else touches. Your scripts are equally important because they serve the same function as a lab notebook — they record exactly what you did, in what order, and with what settings. Without them, even a perfectly organized set of output files becomes uninterpretable. Finally, because bioinformatics analysis generates a large amount of intermediate files along the way, it helps to clearly separate what is disposable from what must be kept. Knowing what can safely be deleted and what represents a final, meaningful output is what keeps a project folder from collapsing into chaos over time.
+          </p>
+        </section>
+
+        <section id="foundation">
+          <h2>Laying the Foundation</h2>
+          <p>
+            Let's build this structure together, step by step. First we have to open a terminal. You can find the Finder icon on the top-right of your screen if you click it and type "Terminal," you can open it that way. When you first open a terminal, you are usually standing in your "Home" directory. This is your personal room in the massive building that is the computer's hard drive. 
+          </p>
+          <figure class="article-figure">
+            <img src="../images/terminal.png" alt="ATAC-seq analysis pipeline overview">
+          </figure>
+          <p>To verify where you are, type in your terminal:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>pwd</code></pre>
+          </div>
+          <p>
+            <strong>pwd</strong> stands for <em>Print Working Directory</em>. It asks the computer: "Where am I right now?" You should see something like <code>/Users/yourname</code> (macOS) or <code>/home/yourname</code> (Linux).
+          </p>
+          <p>
+            Now, let's make sure we start fresh by moving to this home base (just in case you were somewhere else):
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd</code></pre>
+          </div>
+          <p>
+            <strong>cd</strong> stands for <em>Change Directory</em>. Typing it with no arguments is the equivalent of "clicking the Home button." It teleports you back to your user folder.
+          </p>
+          <p>
+            Further, we need a main box to hold our entire experiment. We will call it <code>atacseq</code>.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>mkdir atacseq</code></pre>
+          </div>
+          <p>
+            <strong>mkdir</strong> stands for <em>Make Directory</em>. You have just created a new empty folder — this is the place where we are going to store all files related to ATAC-seq analysis.
+          </p>
+          <p>
+            Now, we must physically walk into that folder to start working. For that you need to type the command below:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd atacseq</code></pre>
+          </div>
+          <p>
+            If you type <code>pwd</code> again, you will see your location has updated. You are now "inside" the project.
+          </p>
+          <figure class="article-figure">
+            <img src="../images/terminal_atacseq.png" alt="ATAC-seq analysis pipeline overview">
+          </figure>
+        </section>
+
+        <section id="departments">
+          <h2>Building the Departments</h2>
+          <p>
+            Just as a wet lab separates its reagents by storage condition — enzymes in the freezer, buffers on the bench, reference materials on the shelf — a well-structured bioinformatics project separates its files by purpose. Mixing raw data with results is the computational equivalent of storing your 4°C enzymes in a 37°C incubator. To set up the primary structure inside your <code>atacseq</code> folder, you run a single command:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>mkdir raw_data reference_data scripts logs meta</code></pre>
+          </div>
+          <p>
+            Each of these five directories has a specific role, and understanding why they exist makes them much easier to use correctly.
+          </p>
+
+          <h3 id="dept-raw">raw_data</h3>
+          <p>
+            The <code>raw_data</code> folder functions like a −80°C freezer. This is where your FASTQ files go the moment you download them from the sequencing core, and the golden rule is that it is read-only. You put files in, but you never edit, open, or overwrite them. If anything goes wrong during analysis, you can always return to this folder and start over. If something goes wrong with the folder itself, the experiment is over — there is no recovery without re-sequencing.
+          </p>
+
+          <h3 id="dept-ref">reference_data</h3>
+          <p>
+            The <code>reference_data</code> folder is the library. ATAC-seq analysis requires mapping your reads to a reference genome such as human hg38 or mouse mm10, and this folder holds the genome sequence in FASTA format along with the gene annotation file in GTF format. These files are very large and change rarely, so keeping them in a dedicated location prevents them from cluttering your analysis directories.
+          </p>
+
+          <h3 id="dept-scripts">scripts</h3>
+          <p>
+            The <code>scripts</code> folder is your lab notebook. Every piece of code you write to process your samples lives here. Just as you would record antibody concentrations and incubation times when performing a Western blot, your scripts record exactly how the computer was instructed to handle your data — what tools were used, what parameters were set, and in what order everything was run.
+          </p>
+
+          <h3 id="dept-logs">logs</h3>
+          <p>
+            The <code>logs</code> folder serves as a troubleshooting journal. When bioinformatics tools run, they print messages describing what they are doing, and when something goes wrong, those messages contain the only clues about what failed. Redirecting that output into this folder keeps your screen clean during analysis while preserving a complete record you can return to for debugging.
+          </p>
+
+          <h3 id="dept-meta">meta</h3>
+          <p>
+            Finally, the <code>meta</code> folder holds the metadata — the sample sheet that decodes everything else. It records which sample is the control, which is the treatment, which replicate is which, and how filenames map to biological conditions. Without it, a folder full of cryptically named files tells you very little about the actual experiment.
+          </p>
+        </section>
+
+        <section id="results">
+          <h2>Preparing for Results</h2>
+          <p>
+            The final step in setting up your project is creating a place to store your results. Since different tools produce different types of output, it is important to keep those outputs separated rather than letting everything pile into a single folder. To do this efficiently, you can use a special version of the <code>mkdir</code> command:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>mkdir -p results/fastqc results/bowtie2</code></pre>
+          </div>
+          <p>
+            The <code>-p</code> flag, sometimes called "parent mode," solves a practical problem. Normally, if you asked the computer to create a folder called <code>fastqc</code> inside a folder called <code>results</code>, it would return an error if <code>results</code> didn't already exist. The <code>-p</code> flag instructs the computer to create the parent folder first if it is missing, and then create the child folder inside it, all in a single command.
+          </p>
+          <p>
+            The two result folders each correspond to a distinct stage of the pipeline. The <code>results/fastqc</code> folder is dedicated to quality control output, where you verify that the sequencing reaction itself worked correctly and that the reads are of sufficient quality before any biological analysis begins. The <code>results/bowtie2</code> folder holds the output from the alignment step, where each DNA fragment is mapped to its location on the chromosomes. Keeping these separate means you always know exactly where to look for a given type of result, and adding new folders for later steps such as peak calling or differential analysis follows the same straightforward pattern.
+          </p>
+        </section>
+
+        <section id="verification">
+          <h2>Verification</h2>
+          <p>
+            Once you have typed all the commands, the natural next question is how to confirm that everything actually worked. To get a complete bird's-eye view of what you have built, run:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>ls -R</code></pre>
+          </div>
+          <p>
+            The <code>ls</code> command lists files and folders, and the <code>-R</code> flag — which stands for <em>recursive</em> — extends that view downward through every subfolder, acting like an X-ray of your entire project structure. After running it, you should see the directory tree shown in the image below.
+          </p>
+          <figure class="article-figure">
+            <img src="../images/ls.png" alt="ATAC-seq analysis pipeline overview">
+          </figure>
+          <p>
+            If the output matches, you have successfully set up your digital lab bench. At this point <code>raw_data</code> and <code>reference_data</code> are both intentionally empty, waiting to receive FASTQ files and genome reference files respectively, while the <code>results</code> folder already contains two dedicated subfolders — <code>fastqc</code> and <code>bowtie2</code> — ready to catch output as the pipeline runs.
+          </p>
+
+          <h3 id="troubleshooting">Troubleshooting</h3>
+          <p>
+            If something does not look right, there are two common issues worth checking. A "Permission Denied" error usually means you are trying to create folders in a restricted system directory such as <code>/root</code> or <code>/usr</code>, which can happen if you forgot to run <code>cd</code> first to navigate to your home directory. A "File exists" error simply means you ran the command more than once, which is not a problem — the <code>-p</code> flag is specifically designed to be safe when run multiple times and will never delete or overwrite anything that is already there.
+          </p>
+        </section>
+
+        <section id="next-step">
+          <h2>Next Step</h2>
+          <p>
+            Now that your bench is clean and organized, we need to buy the equipment. You wouldn't start an experiment without pipettes and a centrifuge, and we can't analyze DNA without software. In Chapter 3, I will guide you through installing Conda (your digital lab manager) and setting up the essential tools you will need to run your experiments.
+          </p>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <nav class="chapter-nav">
+    <a href="chapter_1.html">
+      <span class="nav-arrow">&larr;</span>
+      <span class="nav-direction">Previous</span>
+    </a>
+    <a href="chapter_3.html">
+      <span class="nav-direction">Next</span>
+      <span class="nav-arrow">&rarr;</span>
+    </a>
+  </nav>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Bioinformatics by Yerkem Shakhman. Built for wet lab researchers and students in computational biology.</p>
+  </footer>
+
+  <script src="blog-post-ui.js"></script>
+</body>
+</html>

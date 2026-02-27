@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visual Verification – Seeing is Believing</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="scroll-progress-wrap"><div class="scroll-progress-bar"></div></div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-title">Bioinformatics</a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+    </nav>
+  </header>
+
+  <article class="blog-article">
+    <header class="article-header">
+      <h1 class="article-title">Visual Verification – Seeing is Believing</h1>
+      <p class="article-subtitle">In this section, we will navigate the cloud-based <strong>IGV Web App</strong> without needing complex software installation, visualize processed genomic data by loading signal tracks and statistical calls, verify the success of the analysis pipeline by performing a visual "Sanity Check" on specific genes, and interpret the biological relationship between raw sequencing density (BigWig) and statistical significance (Peaks).</p>
+      <figure class="article-figure">
+        <img src="../images/atac_seq.png" alt="Visual verification of ATAC-seq results in IGV">
+      </figure>
+      <div class="article-meta">
+        <div class="meta-column">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Yerkem Shakhman</span>
+        </div>
+        <div class="meta-column">
+          <span class="meta-label">Chapter</span>
+          <span class="meta-value">10 — Visual Verification</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <aside class="article-toc">
+        <h2 class="toc-title">Contents</h2>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li><a href="#the-concept">The Concept: The "Zero-Install" Solution</a></li>
+            <li>
+              <a href="#phase-1">Phase 1: Launching the Genome Browser</a>
+              <ul>
+                <li><a href="#open-app">Open the App</a></li>
+                <li><a href="#select-genome">Select Your Genome</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="#phase-2">Phase 2: Loading Your Data</a>
+              <ul>
+                <li><a href="#locate-files">Locate Your Files</a></li>
+                <li><a href="#drag-drop">Drag and Drop</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="#phase-3">Phase 3: The Sanity Check</a>
+              <ul>
+                <li><a href="#navigate-data">Navigate to the Data</a></li>
+                <li><a href="#zoom-gene">Zoom to a Gene</a></li>
+                <li><a href="#what-you-see">What You Should See</a></li>
+              </ul>
+            </li>
+            <li><a href="#the-verdict">The Verdict</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="article-content">
+
+        <section id="the-concept">
+          <h2>The Concept: The "Zero-Install" Solution</h2>
+          <p>
+            In the "old days" of bioinformatics, visualizing genomes was a headache. It required downloading massive reference files, installing complex desktop software like IGV Desktop, and fighting with Java updates and RAM settings just to open a window.
+          </p>
+          <p>
+            Today, we can bypass that entire struggle. We will use the <strong>IGV Web App</strong>, a modern tool that runs entirely in your internet browser (like Chrome, Safari, or Firefox). Think of it as "Google Docs for Genomics"&mdash;it provides the full power of a genome browser with zero installation.
+          </p>
+          <p>
+            Crucially, <strong>your data stays with you</strong>. Even though the app runs in the cloud, it reads the files directly from your computer's hard drive. You do not need to wait hours to upload your massive files to a server.
+          </p>
+        </section>
+
+        <section id="phase-1">
+          <h2>Phase 1: Launching the Genome Browser</h2>
+          <p>Let's set up our digital microscope.</p>
+
+          <h3 id="open-app">Step 1: Open the App</h3>
+          <p>Open your web browser and navigate to:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>https://igv.org/app/</code></pre>
+          </div>
+          <p>
+            <strong>Expected Output:</strong> You will see a clean, white interface with a genome track ruler at the top. By default, it usually loads the Human genome (hg38).
+          </p>
+
+          <h3 id="select-genome">Step 2: Select Your Genome</h3>
+          <p>
+            In the top-left corner, you will see a dropdown menu (likely labeled "Genomes"). Click it and select <strong>Mouse (mm10)</strong>.
+          </p>
+          <blockquote>
+            <p><strong>Why mm10?</strong> Even though our "toy" dataset only contains data for Chromosome 19, the coordinate system we used for alignment was based on the <strong>mm10</strong> build of the mouse genome. If you selected a different mouse version (like mm9 or mm39), your peaks would appear in the wrong places (or nowhere at all), because the "addresses" of the genes would be different.</p>
+          </blockquote>
+          <p>
+            <strong>Expected Output:</strong> The track labels will update, and the ruler at the top will show chromosomes 1 through 19, X, and Y.
+          </p>
+        </section>
+
+        <section id="phase-2">
+          <h2>Phase 2: Loading Your Data</h2>
+          <p>Now we populate the empty map with our own scientific discoveries.</p>
+
+          <h3 id="locate-files">Step 1: Locate Your Files</h3>
+          <p>
+            Open your file manager (Finder on Mac or File Explorer on Windows) and navigate to your project folder (<code>atacseq</code>). You need the two files we generated in the previous chapters:
+          </p>
+          <ul>
+            <li><strong>The Signal Track:</strong> <code>results/visualization/ENCFF535OGL.bw</code> (This is the "Mountain")</li>
+            <li><strong>The Peak Calls:</strong> <code>results/peaks/ENCFF535OGL_peaks.narrowPeak</code> (This is the "Verdict")</li>
+          </ul>
+
+          <h3 id="drag-drop">Step 2: Drag and Drop</h3>
+          <p>
+            Simply click both files and <strong>drag them</strong> from your folder directly onto the white space in the web browser window.
+          </p>
+          <p>
+            <strong>Expected Output:</strong> Two new horizontal tracks will appear in the browser window:
+          </p>
+          <ul>
+            <li><strong>ENCFF535OGL.bw:</strong> Likely appears as a grey or blue histogram (bar chart).</li>
+            <li><strong>ENCFF535OGL_peaks.narrowPeak:</strong> Likely appears as a row of small blue blocks or bars.</li>
+          </ul>
+        </section>
+
+        <section id="phase-3">
+          <h2>Phase 3: The Sanity Check (Verification)</h2>
+          <p>
+            Right now, you are looking at the data from "outer space"&mdash;zoomed out to show the entire genome. To verify that your analysis pipeline (Trimming &rarr; Alignment &rarr; Filtering &rarr; Peak Calling) actually worked, we need to zoom in to "street view" and check a specific biological landmark.
+          </p>
+
+          <h3 id="navigate-data">Step 1: Navigate to the Data</h3>
+          <p>In the search bar at the top of the IGV window, type the following and press <strong>Enter</strong>:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>chr19</code></pre>
+          </div>
+          <blockquote>
+            <p><strong>Why chr19?</strong> Remember, to save time and RAM, we only aligned reads to Chromosome 19. The rest of the genome is empty!</p>
+          </blockquote>
+
+          <h3 id="zoom-gene">Step 2: Zoom to a Gene</h3>
+          <p>
+            Now, let's find a specific gene to audit our results. Type the following in the search bar and press <strong>Enter</strong>:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>Lmnb2</code></pre>
+          </div>
+          <p>
+            <strong>Biological Context:</strong> <em>Lmnb2</em> (Lamin B2) is a "housekeeping gene." It is essential for nuclear structure and is active in almost all cell types. Therefore, we <strong>expect</strong> its chromatin to be open.
+          </p>
+
+          <h3 id="what-you-see">What You Should See</h3>
+          <ul>
+            <li>
+              <strong>The Signal (BigWig Track):</strong> Look at the start of the gene (the left side, where the arrow starts). You should see a large "mountain" of reads piling up.
+              <br><em>Interpretation:</em> This pile-up confirms that the Tn5 enzyme was able to access the DNA here frequently. This is the <strong>Promoter Region</strong>, and the open chromatin confirms the gene is being transcribed.
+            </li>
+            <li>
+              <strong>The Call (NarrowPeak Track):</strong> Look directly underneath that mountain. You should see a solid blue bar.
+              <br><em>Interpretation:</em> This bar represents the statistical decision made by MACS2. It effectively says, "I have calculated the background noise, and this mountain is statistically significant. It is a real peak."
+            </li>
+          </ul>
+        </section>
+
+        <section id="the-verdict">
+          <h2>The Verdict</h2>
+          <p>This visual inspection is the final proof of your analysis.</p>
+          <ul>
+            <li><strong>If the blue bar perfectly aligns with the grey mountain:</strong> <strong>Congratulations!</strong> Your pipeline is valid. You have successfully transformed raw, noisy sequencing reads into biologically meaningful genomic features.</li>
+            <li><strong>If you see mountains but no blue bars:</strong> Your peak calling was too strict (MACS2 missed real data).</li>
+            <li><strong>If you see blue bars where there are no mountains:</strong> Your peak calling was too loose (MACS2 is calling noise as real).</li>
+          </ul>
+          <p>
+            With your results verified, you can now confidently proceed to use these peaks for downstream analysis, such as motif finding or gene annotation.
+          </p>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <nav class="chapter-nav">
+    <a href="chapter_9.html">
+      <span class="nav-arrow">&larr;</span>
+      <span class="nav-direction">Previous</span>
+    </a>
+  </nav>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Bioinformatics by Yerkem Shakhman. Built for wet lab researchers and students in computational biology.</p>
+  </footer>
+
+  <script src="blog-post-ui.js"></script>
+</body>
+</html>
