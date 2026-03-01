@@ -23,7 +23,7 @@
         <p class="post-description">Understanding the fundamentals of ATAC-seq data analysis pipeline and the key steps involved.</p>
       </div>
       <div class="post-image">
-        <img src="images/chromosome.png" alt="ATAC-seq analysis preview">
+        <img src="images/atac_seq.png" alt="ATAC-seq analysis preview" style="object-fit: contain;">
       </div>
     </article>
 
@@ -39,7 +39,7 @@
         <p class="post-description">Organizing your project and data in a way that is easy to understand and reproduce.</p>
       </div>
       <div class="post-image">
-        <img src="images/terminal_finder.png" alt="Flappy Bird agent preview">
+        <img src="images/folder.png" alt="Flappy Bird agent preview" style="object-fit: contain;">
       </div>
     </article>
 
@@ -51,7 +51,7 @@
         <p class="post-description">Installing Miniconda, configuring Bioconda, and creating isolated environments to manage bioinformatics tools reproducibly.</p>
       </div>
       <div class="post-image">
-        <img src="images/conda.png" alt="Conda setup preview">
+        <img src="images/conda.png" alt="Conda setup preview" style="object-fit: contain;">
       </div>
     </article>
 
@@ -63,7 +63,7 @@
           <p class="post-description">Retrieving raw sequencing data, creating digital aliquots with seqtk, and running FastQC to assess read quality before downstream analysis.</p>
         </div>
         <div class="post-image">
-          <img src="images/fb_wg_preview.png" alt="Policy gradients preview">
+          <img src="images/fastq.png" alt="Policy gradients preview" style="object-fit: contain;">
         </div>
     </article>
 
@@ -75,7 +75,7 @@
           <p class="post-description">Interpreting the results of the FASTQC quality control report.</p>
         </div>
         <div class="post-image">
-          <img src="images/fb_wg_preview.png" alt="Policy gradients preview">
+          <img src="images/fastqc.png" alt="Policy gradients preview" style="object-fit: contain;">
         </div>
     </article>
 
@@ -87,55 +87,91 @@
           <p class="post-description">Removing adapter sequences and low-quality bases from your sequencing data to prepare it for downstream analysis.</p>
         </div>
         <div class="post-image">
-          <img src="images/fb_wg_preview.png" alt="Policy gradients preview">
+          <img src="images/adapter.png" alt="Policy gradients preview">
         </div>
     </article>
 
     <article class="blog-post">
         <div class="post-content">
           <span class="post-badge">CHAPTER 7</span>
-          <h2 class="post-title"><a href="posts/fireboy-watergirl-marl.html">Genome Alignment: Mapping Your Reads to the Reference Genome</a></h2>
+          <h2 class="post-title"><a href="chapters/chapter_7.html">Genome Alignment: Mapping Your Reads to the Reference Genome</a></h2>
           <p class="post-authors">Yerkem Shakhman</p>
           <p class="post-description">Mapping your sequencing data to the reference genome to identify the locations of your reads.</p>
         </div>
         <div class="post-image">
-          <img src="images/fb_wg_preview.png" alt="Policy gradients preview">
+          <img src="images/alignment.png" alt="Policy gradients preview">
         </div>
     </article>
 
     <article class="blog-post">
         <div class="post-content">
           <span class="post-badge">CHAPTER 8</span>
-          <h2 class="post-title"><a href="posts/fireboy-watergirl-marl.html">Peak Calling and QC: Identifying Open Chromatin Regions</a></h2>
+          <h2 class="post-title"><a href="chapters/chapter_8.html">Peak Calling and QC: Identifying Open Chromatin Regions</a></h2>
           <p class="post-authors">Yerkem Shakhman</p>
           <p class="post-description">Identifying open chromatin regions in your sequencing data to understand the regulatory elements in the genome.</p>
         </div>
         <div class="post-image">
-          <img src="images/fb_wg_preview.png" alt="Policy gradients preview">
+          <img src="images/peak.png" alt="Policy gradients preview">
         </div>
     </article>
 
     <article class="blog-post">
         <div class="post-content">
           <span class="post-badge">CHAPTER 9</span>
-          <h2 class="post-title"><a href="posts/fireboy-watergirl-marl.html">Visualization: Exploring Your Data in the Genome Browser</a></h2>
+          <h2 class="post-title"><a href="chapters/chapter_9.html">Visualization – Seeing is Believing</a></h2>
           <p class="post-authors">Yerkem Shakhman</p>
-          <p class="post-description">Exploring policy-based methods and how gradient ascent can directly optimize the policy for better game-playing performance.</p>
+          <p class="post-description">Converting raw alignment data into a compressed BigWig coverage track using bedtools and visualizing genomic signal in a genome browser.</p>
         </div>
         <div class="post-image">
-          <img src="images/fb_wg_preview.png" alt="Policy gradients preview">
+          <img src="images/bw.png" alt="Policy gradients preview">
         </div>
     </article>
 
     <article class="blog-post">
         <div class="post-content">
           <span class="post-badge">CHAPTER 10</span>
-          <h2 class="post-title"><a href="posts/fireboy-watergirl-marl.html">M for Cooperative Fireboy & Watergirl</a></h2>
+          <h2 class="post-title"><a href="chapters/chapter_10.html">Visualization: Exploring Your Data in the Genome Browser</a></h2>
           <p class="post-authors">Yerkem Shakhman</p>
-          <p class="post-description">Exploring policy-based methods and how gradient ascent can directly optimize the policy for better game-playing performance.</p>
+          <p class="post-description">Navigating the IGV Web App to visualize signal tracks and peak calls, and performing a visual sanity check on your ATAC-seq results.</p>
         </div>
         <div class="post-image">
-          <img src="images/fb_wg_preview.png" alt="Policy gradients preview">
+          <img src="images/igv.png" alt="Visual verification preview">
+        </div>
+    </article>
+
+    <article class="blog-post">
+        <div class="post-content">
+          <span class="post-badge">CHAPTER 11</span>
+          <h2 class="post-title"><a href="chapters/chapter_11.html">Exploring Your Peaks: What Did You Actually Find?</a></h2>
+          <p class="post-authors">Yerkem Shakhman</p>
+          <p class="post-description">Interrogating the narrowPeak file with basic terminal commands to decode every column, count and rank peaks by statistical strength, and build biological intuition about your data.</p>
+        </div>
+        <div class="post-image">
+          <img src="images/stats.png" alt="Peak exploration preview">
+        </div>
+    </article>
+
+    <article class="blog-post">
+        <div class="post-content">
+          <span class="post-badge">CHAPTER 12</span>
+          <h2 class="post-title"><a href="chapters/chapter_12.html">Peak Annotation with GREAT: Putting Your Peaks on the Map</a></h2>
+          <p class="post-authors">Yerkem Shakhman</p>
+          <p class="post-description">Preparing and submitting peaks to the GREAT web tool, interpreting genomic annotations and pathway enrichment to understand whether open chromatin regions fall at promoters, enhancers, or intergenic regions.</p>
+        </div>
+        <div class="post-image">
+          <img src="images/genreg.png" alt="Peak annotation preview">
+        </div>
+    </article>
+
+    <article class="blog-post">
+        <div class="post-content">
+          <span class="post-badge">CHAPTER 13</span>
+          <h2 class="post-title"><a href="chapters/chpater_13.html">Motif Enrichment with MEME Suite: Who Is Opening the Chromatin?</a></h2>
+          <p class="post-authors">Yerkem Shakhman</p>
+          <p class="post-description">Extracting peak sequences with bedtools getfasta, submitting them to MEME Suite AME for transcription factor motif enrichment, and interpreting which transcription factors are driving chromatin accessibility in monocytes.</p>
+        </div>
+        <div class="post-image">
+          <img src="images/motif.png" alt="Motif enrichment preview" style="object-fit: contain;" >
         </div>
     </article>
 

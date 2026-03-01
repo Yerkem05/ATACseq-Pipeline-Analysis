@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exploring Your Peaks: What Did You Actually Find?</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="scroll-progress-wrap"><div class="scroll-progress-bar"></div></div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-title">Bioinformatics</a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+    </nav>
+  </header>
+
+  <article class="blog-article">
+    <header class="article-header">
+      <h1 class="article-title">Exploring Your Peaks: What Did You Actually Find?</h1>
+      <p class="article-subtitle">In this chapter, we will open and interrogate the narrowPeak file produced by MACS2 using basic terminal commands you already know, decode the meaning of every column in that file, quantify and rank your peaks by statistical strength, and build genuine biological intuition about your data before handing it off to any downstream tool. No new software installation is required.</p>
+      <figure class="article-figure">
+        <img src="../images/atac_seq.png" alt="Exploring ATAC-seq peaks from MACS2 output">
+      </figure>
+      <div class="article-meta">
+        <div class="meta-column">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Yerkem Shakhman</span>
+        </div>
+        <div class="meta-column">
+          <span class="meta-label">Chapter</span>
+          <span class="meta-value">11 &mdash; Exploring Your Peaks</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <aside class="article-toc">
+        <h2 class="toc-title">Contents</h2>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li><a href="#lab-notebook">The Lab Notebook Moment</a></li>
+            <li>
+              <a href="#anatomy">The Anatomy of a narrowPeak File</a>
+              <ul>
+                <li><a href="#column-breakdown">Column-by-Column Breakdown</a></li>
+              </ul>
+            </li>
+            <li><a href="#how-many-peaks">How Many Peaks Did You Find?</a></li>
+            <li><a href="#peak-width">How Wide Are Your Peaks on Average?</a></li>
+            <li><a href="#strongest-peaks">Finding Your Strongest Peaks</a></li>
+            <li><a href="#peaks-near-location">Finding Peaks Near a Specific Location</a></li>
+            <li><a href="#counting-by-threshold">Counting Peaks by Score Threshold</a></li>
+            <li><a href="#next-step">Next Step</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="article-content">
+
+        <section id="lab-notebook">
+          <h2>The Lab Notebook Moment</h2>
+          <p>
+            You have just run a long, complex experiment. The sequencer has done its job, the pipeline has processed your data, and MACS2 has handed you a file called <code>ENCFF535OGL_peaks.narrowPeak</code>. In a wet lab, this would be the equivalent of the moment you develop your film after an X-ray or open your plate reader results. Before you rush to the discussion section of your paper, you sit down and read the numbers carefully. You ask yourself: how many bands did I get, how strong are they, and do they make sense?
+          </p>
+          <p>
+            This chapter is that moment. We are going to open our results file, read it line by line, count our peaks, find the strongest ones, and understand exactly what MACS2 is telling us. The tools we will use &mdash; <code>cat</code>, <code>wc</code>, <code>awk</code>, <code>sort</code>, and <code>head</code> &mdash; are all things you have already encountered in previous chapters. No installation required. This is pure exploration.
+          </p>
+        </section>
+
+        <section id="anatomy">
+          <h2>The Anatomy of a narrowPeak File</h2>
+          <p>
+            Before we run a single command, we need to understand the file we are working with. Let us navigate to the peaks folder and take a look at the raw contents.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd ~/atacseq
+
+head -5 results/peaks/ENCFF535OGL_peaks.narrowPeak</code></pre>
+          </div>
+          <p>
+            <code>head</code> is a command that prints only the first N lines of a file to your screen. The <code>-5</code> tells it to show just the first 5 lines. Think of it as opening a sealed box just enough to peek inside without dumping everything on the floor.
+          </p>
+          <p>You will see output that looks something like this:</p>
+          <div class="code-cell">
+            <pre><code>chr19   3204500   3205200   ENCFF535OGL_peak_1   143   .   8.45   18.23   14.31   350
+chr19   4102300   4103100   ENCFF535OGL_peak_2   98    .   6.12   13.45   9.87    400</code></pre>
+          </div>
+          <p>
+            Each line is one peak &mdash; one region of open chromatin. Each column tells you something specific about that peak, and it is worth knowing what every column means because you will encounter this format in almost every downstream analysis tool.
+          </p>
+
+          <h3 id="column-breakdown">Column-by-Column Breakdown</h3>
+          <p><strong>Column 1 &mdash; Chromosome:</strong> Which chromosome the peak is on. In our toy dataset this will always be chr19 because we only aligned to that chromosome.</p>
+          <p><strong>Column 2 &mdash; Start:</strong> The genomic coordinate where the peak begins. This is the left foot of the mountain.</p>
+          <p><strong>Column 3 &mdash; End:</strong> The genomic coordinate where the peak ends. This is the right foot of the mountain.</p>
+          <p><strong>Column 4 &mdash; Peak Name:</strong> A unique identifier assigned by MACS2. Think of it as a tube label.</p>
+          <p><strong>Column 5 &mdash; Score:</strong> A summary score between 0 and 1000. Higher means stronger evidence. Think of it as the signal-to-noise ratio of a Western blot band &mdash; higher score, cleaner and stronger band.</p>
+          <p><strong>Column 6 &mdash; Strand:</strong> A dot (<code>.</code>) meaning this peak has no strand information, which is expected for ATAC-seq since Tn5 inserts on both strands.</p>
+          <p><strong>Column 7 &mdash; Fold Enrichment:</strong> How many times higher is the signal in this peak compared to the genomic background. A fold enrichment of 8 means the peak has 8 times more reads than the surrounding &ldquo;empty&rdquo; genome. This is the equivalent of a band being 8 times darker than background on your film.</p>
+          <p><strong>Column 8 &mdash; &minus;log<sub>10</sub>(p-value):</strong> The negative log of the p-value. Higher numbers mean more statistically significant. A value of 18 corresponds to a p-value of approximately 10<sup>&minus;18</sup> &mdash; vanishingly small.</p>
+          <p><strong>Column 9 &mdash; &minus;log<sub>10</sub>(q-value):</strong> The same but after correcting for multiple testing (false discovery rate). This is the value we used to filter peaks in Chapter 8 with the <code>-q 0.01</code> flag. A q-value of 14 corresponds to an FDR of roughly 10<sup>&minus;14</sup>.</p>
+          <p><strong>Column 10 &mdash; Summit Offset:</strong> The number of base pairs from the start of the peak to the exact highest point (the summit). If your peak starts at position 3,204,500 and this number is 350, then the summit is at position 3,204,850.</p>
+        </section>
+
+        <section id="how-many-peaks">
+          <h2>How Many Peaks Did You Find?</h2>
+          <p>The first and most basic question is simply: how many open chromatin regions did MACS2 identify?</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>wc -l results/peaks/ENCFF535OGL_peaks.narrowPeak</code></pre>
+          </div>
+          <p>
+            <code>wc</code> stands for Word Count. The <code>-l</code> flag tells it to count lines rather than words. Since each line in a narrowPeak file represents exactly one peak, the number of lines equals the number of peaks. You will see something like:
+          </p>
+          <div class="code-cell">
+            <pre><code>847 results/peaks/ENCFF535OGL_peaks.narrowPeak</code></pre>
+          </div>
+          <p>
+            This tells you that MACS2 identified 847 open chromatin regions on Chromosome 19 alone. Remember, we only aligned to one chromosome out of twenty. In a full experiment with all chromosomes, you would typically find between 50,000 and 150,000 peaks genome-wide in a good ATAC-seq experiment.
+          </p>
+          <blockquote>
+            <p><strong>Biological note:</strong> The number of peaks is a rough proxy for the regulatory complexity of your cell type. Immune cells like the monocytes in our dataset tend to have highly dynamic chromatin and therefore a relatively large number of accessible regions, which is exactly what makes them interesting to study with ATAC-seq.</p>
+          </blockquote>
+        </section>
+
+        <section id="peak-width">
+          <h2>How Wide Are Your Peaks on Average?</h2>
+          <p>
+            Peak width tells you about the nature of the open chromatin. Narrow peaks tend to represent transcription factor binding sites &mdash; tight, focused regions. Wider peaks often correspond to nucleosome-depleted regions around active promoters or broad enhancers.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>awk '{sum += ($3 - $2); count++} END {print "Average peak width:", sum/count, "bp"}' results/peaks/ENCFF535OGL_peaks.narrowPeak</code></pre>
+          </div>
+          <p>
+            <code>awk</code> is a command-line tool for processing text files column by column. Think of it as a very fast Excel formula that runs on the terminal. Let us break this command down piece by piece.
+          </p>
+          <p>
+            The curly braces <code>{...}</code> contain instructions that <code>awk</code> will execute on every single line of the file. <code>$3</code> refers to column 3 (the end coordinate) and <code>$2</code> refers to column 2 (the start coordinate). So <code>$3 - $2</code> calculates the width of each peak. <code>sum += (...)</code> adds that width to a running total, and <code>count++</code> increments a counter each time a line is processed.
+          </p>
+          <p>
+            The <code>END {...}</code> block runs once, after all lines have been processed. It prints the average width by dividing the total by the count.
+          </p>
+          <p>You will see output like:</p>
+          <div class="code-cell">
+            <pre><code>Average peak width: 623 bp</code></pre>
+          </div>
+          <p>
+            This is completely normal for ATAC-seq. Peaks are typically between 200 and 1000 bp wide, reflecting the footprint of the nucleosome-free region plus a small flanking zone.
+          </p>
+        </section>
+
+        <section id="strongest-peaks">
+          <h2>Finding Your Strongest Peaks</h2>
+          <p>
+            Not all peaks are equal. Some regions are dramatically more accessible than others &mdash; these tend to be the most actively regulated elements in the cell. To find the strongest peaks we sort by Column 9, the q-value score, in descending order.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>sort -k9,9nr results/peaks/ENCFF535OGL_peaks.narrowPeak | head -10</code></pre>
+          </div>
+          <p>
+            There are two commands chained together here with the pipe symbol <code>|</code>, which you first encountered in Chapter 4. The pipe takes the output of the left command and feeds it directly into the right command, exactly like connecting two pieces of tubing in a lab.
+          </p>
+          <p>
+            <code>sort</code> is the sorting command. The <code>-k9,9</code> flag tells it to sort by column 9. The <code>n</code> means sort numerically (so 100 comes after 9, not before it), and the <code>r</code> means reverse order (largest values first). Without the <code>r</code>, the weakest peaks would appear at the top.
+          </p>
+          <p>
+            <code>head -10</code> then shows only the top 10 results from that sorted list.
+          </p>
+          <p>
+            The peaks at the top of this list with the highest q-value scores are your most confident, most accessible regions. These are the genomic locations where chromatin is most dramatically open in your monocyte sample &mdash; likely active promoters of highly expressed genes or strong enhancers driving immune cell identity.
+          </p>
+        </section>
+
+        <section id="peaks-near-location">
+          <h2>Finding Peaks Near a Specific Location</h2>
+          <p>
+            Sometimes you want to check whether a specific gene you care about biologically has a peak nearby. Let us say you want to see if there are any peaks near the start of Chromosome 19, for example in the first 5 million base pairs.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>awk '$2 < 5000000' results/peaks/ENCFF535OGL_peaks.narrowPeak</code></pre>
+          </div>
+          <p>
+            This <code>awk</code> command filters the file and only prints lines where column 2 (the start coordinate) is less than 5,000,000. It works like a filter on a spreadsheet &mdash; only rows that pass the condition are shown.
+          </p>
+          <p>You can make this more specific. If you know the genomic coordinates of a gene you care about, you can filter for peaks within that range:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>awk '$2 >= 3000000 && $3 <= 4000000' results/peaks/ENCFF535OGL_peaks.narrowPeak</code></pre>
+          </div>
+          <p>
+            The <code>&&</code> means &ldquo;AND&rdquo; &mdash; both conditions must be true. This command asks: give me all peaks where the start is at or after position 3,000,000 AND the end is at or before 4,000,000. This is the computational equivalent of looking up a specific lane on your gel.
+          </p>
+        </section>
+
+        <section id="counting-by-threshold">
+          <h2>Counting Peaks by Score Threshold</h2>
+          <p>
+            In a publication, you might want to report how many &ldquo;high confidence&rdquo; peaks you have &mdash; peaks that pass a more stringent significance threshold. Let us count how many peaks have a q-value score greater than 20, which corresponds to extremely strong statistical evidence.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>awk '$9 > 20' results/peaks/ENCFF535OGL_peaks.narrowPeak | wc -l</code></pre>
+          </div>
+          <p>
+            Again we use the pipe. <code>awk</code> filters for only the high-confidence peaks, then <code>wc -l</code> counts how many passed the filter. The number you get represents your most robust, trustworthy peaks &mdash; the ones you would feel most confident annotating and reporting.
+          </p>
+        </section>
+
+        <section id="next-step">
+          <h2>Next Step</h2>
+          <p>
+            In this chapter, you opened your results file and interrogated it directly from the terminal. You decoded every column of the narrowPeak format, counted your total peaks, calculated average peak width, ranked your peaks by statistical confidence, and filtered for specific genomic regions &mdash; all without installing a single new tool.
+          </p>
+          <p>
+            You now have a genuine biological feel for your data. You know how many open chromatin regions you found, roughly how wide they are, and which ones are most strongly supported statistically.
+          </p>
+          <p>
+            The next logical question is the most biologically meaningful one: where exactly in the genome are these peaks? Are they sitting at gene promoters, inside gene bodies, or out in the intergenic wilderness? That question requires a gene annotation file and a dedicated tool to match peaks to genomic features. In Chapter 12, we will install HOMER and answer exactly that question.
+          </p>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <nav class="chapter-nav">
+    <a href="chapter_10.html">
+      <span class="nav-arrow">&larr;</span>
+      <span class="nav-direction">Previous</span>
+    </a>
+    <a href="chapter_12.html">
+      <span class="nav-direction">Next</span>
+      <span class="nav-arrow">&rarr;</span>
+    </a>
+  </nav>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Bioinformatics by Yerkem Shakhman. Built for wet lab researchers and students in computational biology.</p>
+  </footer>
+
+  <script src="blog-post-ui.js"></script>
+</body>
+</html>

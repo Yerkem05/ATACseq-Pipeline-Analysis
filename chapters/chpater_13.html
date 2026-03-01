@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motif Enrichment with MEME Suite: Who Is Opening the Chromatin?</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="scroll-progress-wrap"><div class="scroll-progress-bar"></div></div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-title">Bioinformatics</a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+    </nav>
+  </header>
+
+  <article class="blog-article">
+    <header class="article-header">
+      <h1 class="article-title">Motif Enrichment with MEME Suite: Who Is Opening the Chromatin?</h1>
+      <p class="article-subtitle">In this chapter, we will use bedtools getfasta to extract the DNA sequences contained within our peak regions, prepare and inspect the resulting FASTA file for submission, upload it to the MEME Suite web server to perform transcription factor motif enrichment analysis, and interpret the results to identify which transcription factors are likely driving chromatin accessibility in our monocyte sample.</p>
+      <figure class="article-figure">
+        <img src="../images/atac_seq.png" alt="Motif enrichment with MEME Suite">
+      </figure>
+      <div class="article-meta">
+        <div class="meta-column">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Yerkem Shakhman</span>
+        </div>
+        <div class="meta-column">
+          <span class="meta-label">Chapter</span>
+          <span class="meta-value">13 &mdash; Motif Enrichment with MEME Suite</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <aside class="article-toc">
+        <h2 class="toc-title">Contents</h2>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li><a href="#lock-and-key">The Lock and Key Question</a></li>
+            <li><a href="#two-step-strategy">The Two-Step Strategy</a></li>
+            <li><a href="#phase-1">Preparing the Input &mdash; Extracting Peak Sequences</a></li>
+            <li><a href="#phase-2">Trimming Sequences to the Peak Summit</a></li>
+            <li><a href="#phase-3">Checking File Size Before Upload</a></li>
+            <li><a href="#phase-4">Submitting to MEME Suite &mdash; AME</a></li>
+            <li>
+              <a href="#phase-5">Interpreting the AME Results</a>
+              <ul>
+                <li><a href="#sequence-logo">The Sequence Logo</a></li>
+              </ul>
+            </li>
+            <li><a href="#phase-6">The Biological Interpretation</a></li>
+            <li><a href="#phase-7">Saving Your Results</a></li>
+            <li><a href="#complete-picture">The Complete Picture</a></li>
+            <li><a href="#next-step">Next Step</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="article-content">
+
+        <section id="lock-and-key">
+          <h2>The Lock and Key Question</h2>
+          <p>
+            In Chapter 12 you discovered where your open chromatin regions are and which biological processes are enriched near them. But here is a deeper question that Chapter 12 cannot answer: these regions did not simply open up by themselves. Chromatin accessibility is an active biological process. Specific proteins called <strong>transcription factors</strong> bind to specific short DNA sequences called <strong>motifs</strong>, and through a cascade of molecular events, they recruit chromatin remodeling complexes that push nucleosomes aside and create the open regions your Tn5 enzyme tagged.
+          </p>
+          <p>
+            In a wet lab analogy, a transcription factor is like a specific restriction enzyme. Just as HindIII only cuts at the sequence AAGCTT and nowhere else, a transcription factor like PU.1 only binds efficiently at its specific 8 to 10 base pair recognition sequence. If you find that sequence systematically present inside your open chromatin regions but absent from random genomic regions, it is strong evidence that PU.1 is actively binding there and is likely responsible for maintaining the accessible chromatin state you observed.
+          </p>
+          <p>
+            This analysis is called <strong>motif enrichment</strong>, and it is arguably the most biologically exciting output of the entire ATAC-seq pipeline. It transforms a list of genomic coordinates into a hypothesis about which transcription factors are active in your cell type &mdash; the kind of mechanistic insight that drives experimental follow-up.
+          </p>
+        </section>
+
+        <section id="two-step-strategy">
+          <h2>The Two-Step Strategy</h2>
+          <p>
+            Unlike Chapter 12 where we could submit the narrowPeak coordinate file directly, motif analysis requires something different. A motif enrichment tool does not work with genomic coordinates &mdash; it works with actual DNA letter sequences. It needs to look at the A, C, G, T content inside your peaks and search for patterns.
+          </p>
+          <p>
+            This means we have to do one preparatory step in the terminal: extract the DNA sequences from inside our peaks and save them in a format called <strong>FASTA</strong>. Think of the narrowPeak file as a list of addresses, and the reference genome as the city map. We need to physically go to each address on the map and copy down what the building looks like. The tool that does this is <code>bedtools getfasta</code>, which is already installed in your environment from Chapter 9.
+          </p>
+          <p>
+            Once we have the FASTA file, we upload it to the <strong>MEME Suite</strong> web server at <a href="https://meme-suite.org" target="_blank" rel="noopener">meme-suite.org</a>. MEME Suite runs the entire motif analysis on their servers &mdash; their computers do the heavy computational work and return the results to your browser. No installation, no disk space consumption on your machine, and no compatibility issues.
+          </p>
+        </section>
+
+        <section id="phase-1">
+          <h2>Preparing the Input &mdash; Extracting Peak Sequences</h2>
+          <p>First, confirm you are in your project directory with your environment active:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd ~/atacseq_og
+
+conda activate bio-tools</code></pre>
+          </div>
+          <p>
+            We will use <code>bedtools getfasta</code> to extract the DNA sequences from within each of our peaks. This command needs two inputs: the peak coordinates file and the reference genome FASTA file. You already have both &mdash; the peak file from Chapter 8 and the chr19 reference genome downloaded in Chapter 7.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>bedtools getfasta -fi reference_data/chr19.fa -bed results/peaks/ENCFF535OGL_peaks.narrowPeak -fo results/peaks/peak_sequences.fa</code></pre>
+          </div>
+          <p>Let us break this command down completely.</p>
+          <p>
+            <code>bedtools getfasta</code> is the specific subcommand of bedtools that extracts sequences from a genome using a set of coordinates. Think of it as a molecular scissors that cuts out exactly the pieces of the reference genome that correspond to your peak locations.
+          </p>
+          <p>
+            <code>-fi reference_data/chr19.fa</code> specifies the <strong>Fasta Input</strong> &mdash; the reference genome sequence file. This is the file we downloaded and unzipped in Chapter 7. It contains the actual A, C, G, T sequence of every base pair in Chromosome 19.
+          </p>
+          <p>
+            <code>-bed results/peaks/ENCFF535OGL_peaks.narrowPeak</code> tells bedtools which coordinates to extract. The <code>-bed</code> flag specifies that the coordinate file is in BED or BED-like format. Our narrowPeak file qualifies because its first three columns are chromosome, start, and end &mdash; exactly what bedtools needs to locate each region.
+          </p>
+          <p>
+            <code>-fo results/peaks/peak_sequences.fa</code> specifies the <strong>Fasta Output</strong> file where the extracted sequences will be saved. The <code>.fa</code> extension indicates FASTA format, which is a standard plain text format for storing DNA sequences.
+          </p>
+          <p>The command runs silently and returns the prompt when finished. To confirm it worked:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>wc -l results/peaks/peak_sequences.fa</code></pre>
+          </div>
+          <p>
+            In FASTA format, every sequence is represented by two lines: a header line beginning with <code>&gt;</code> that contains the sequence name, and a sequence line containing the actual letters. Since each of your peaks generates one sequence, the total number of lines should be approximately double your peak count. If you had 847 peaks, expect around 1694 lines.
+          </p>
+          <p>Look at the first few entries to confirm the format looks right:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>head -6 results/peaks/peak_sequences.fa</code></pre>
+          </div>
+          <p>You will see output like this:</p>
+          <div class="code-cell">
+            <pre><code>&gt;chr19:3204500-3205200
+ATCGATCGATCGATCG...
+&gt;chr19:4102300-4103100
+GCTAGCTAGCTAGCTA...</code></pre>
+          </div>
+          <p>
+            Each <code>&gt;</code> header line shows the chromosomal coordinates of the peak, and the line below it contains the DNA sequence extracted from that exact location in the mm10 reference genome. These are the sequences we are going to search for transcription factor motifs.
+          </p>
+        </section>
+
+        <section id="phase-2">
+          <h2>Trimming Sequences to the Peak Summit</h2>
+          <p>
+            There is one refinement worth making before submission. As discussed in Chapter 8, each peak has a summit &mdash; the single base pair with the highest read pileup, representing the most likely center of the open chromatin region. Transcription factor motifs are concentrated right at this summit. If we submit the full peak sequence, which can be 500 to 1000 base pairs long, we dilute the motif signal with flanking sequence that contains less useful information.
+          </p>
+          <p>
+            The standard approach in ATAC-seq motif analysis is to use a fixed window of <strong>200 base pairs</strong> centered on the summit of each peak. To do this, we first need to create a new BED file that contains the summit-centered coordinates rather than the full peak coordinates. Recall from Chapter 11 that column 10 of the narrowPeak file contains the offset from the peak start to the summit.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>awk '{summit=$2+$10; start=summit-100; end=summit+100; if(start&lt;0) start=0; print $1"\t"start"\t"end}' results/peaks/ENCFF535OGL_peaks.narrowPeak &gt; results/peaks/peak_summits_200bp.bed</code></pre>
+          </div>
+          <p>This is the most complex <code>awk</code> command in the handbook so far. Let us walk through it step by step, treating it like a protocol with multiple stages.</p>
+          <p>
+            <code>summit=$2+$10</code> calculates the absolute genomic position of the summit. Column 2 (<code>$2</code>) is the peak start coordinate, and column 10 (<code>$10</code>) is the number of base pairs from that start to the summit. Adding them gives the exact chromosomal position of the summit.
+          </p>
+          <p>
+            <code>start=summit-100</code> and <code>end=summit+100</code> define a window of 100 base pairs on each side of the summit, giving a total of 200 base pairs centered on the summit.
+          </p>
+          <p>
+            <code>if(start&lt;0) start=0</code> is a safety check. If a peak is very close to the beginning of the chromosome, subtracting 100 from the summit position might produce a negative number, which is not a valid genomic coordinate. This line catches that situation and sets the start to zero instead.
+          </p>
+          <p>
+            <code>print $1"\t"start"\t"end</code> prints the chromosome name, the new start, and the new end, separated by tabs (<code>\t</code>). The result is a clean three-column BED file.
+          </p>
+          <p>
+            <code>&gt;</code> redirects the output to a new file called <code>peak_summits_200bp.bed</code>.
+          </p>
+          <p>Now extract sequences from this summit-centered file:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>bedtools getfasta -fi reference_data/chr19.fa -bed results/peaks/peak_summits_200bp.bed -fo results/peaks/peak_summit_sequences.fa</code></pre>
+          </div>
+          <p>
+            This is identical to the previous <code>bedtools getfasta</code> command except we are now using the summit-centered coordinates instead of the full peak coordinates. The result is a FASTA file where every sequence is exactly 200 base pairs long, centered on the open chromatin summit. This is the file we will upload to MEME Suite.
+          </p>
+          <p>Confirm it looks right:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>head -4 results/peaks/peak_summit_sequences.fa</code></pre>
+          </div>
+          <p>Each sequence line should now be 200 characters long, one character per base pair.</p>
+        </section>
+
+        <section id="phase-3">
+          <h2>Checking File Size Before Upload</h2>
+          <p>
+            The MEME Suite web server accepts files up to 60 megabytes. Our dataset is small, but it is good practice to check before attempting a submission.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>ls -lh results/peaks/peak_summit_sequences.fa</code></pre>
+          </div>
+          <p>
+            For 847 peaks at 200 base pairs each, the file will be well under 1 megabyte. You are comfortably within the server&rsquo;s limit.
+          </p>
+        </section>
+
+        <section id="phase-4">
+          <h2>Submitting to MEME Suite &mdash; AME</h2>
+          <p>Open your web browser and navigate to:</p>
+          <div class="code-cell">
+            <pre><code>https://meme-suite.org/meme/tools/ame</code></pre>
+          </div>
+          <p>
+            We are using the <strong>AME</strong> tool specifically, which stands for <strong>Analysis of Motif Enrichment</strong>. Within the MEME Suite, AME is the tool designed for exactly our question: given a set of sequences, which known transcription factor motifs are statistically enriched? This is the most appropriate tool for ATAC-seq data where you have a defined set of peak sequences and want to match them against a database of known motifs.
+          </p>
+          <p>The submission form has several sections. Work through them carefully.</p>
+          <p>
+            <strong>Step 1 &mdash; Input Sequences:</strong> Click &ldquo;Choose File&rdquo; and navigate to <code>results/peaks/peak_summit_sequences.fa</code> on your computer. This is the FASTA file you just created. After selecting it, you should see the filename appear next to the button confirming it was loaded.
+          </p>
+          <p>
+            <strong>Step 2 &mdash; Control Sequences:</strong> Leave this set to &ldquo;Shuffle input sequences.&rdquo; This is important to understand. AME needs a background set of sequences to compare against, exactly the same concept as the background in GREAT. By selecting shuffle, you are telling AME to generate background sequences by randomly rearranging the letters in your actual peak sequences. This preserves the overall base composition of your sequences (their GC content) while destroying any real biological patterns &mdash; a statistically sound approach to background generation that is standard practice in the field.
+          </p>
+          <p>
+            <strong>Step 3 &mdash; Motif Database:</strong> Click the dropdown under &ldquo;Select motif databases&rdquo; and select <strong>&ldquo;JASPAR Core Vertebrates (2024)&rdquo;</strong> or the most recent JASPAR vertebrates option available. JASPAR is the gold standard public database of transcription factor binding motifs, curated from thousands of ChIP-seq and protein binding experiments. By selecting the vertebrates collection you ensure it includes all mouse and human transcription factor motifs relevant to our experiment.
+          </p>
+          <p>
+            <strong>Step 4 &mdash; Advanced Options:</strong> Leave all other settings at their defaults for now. The default statistical threshold and scoring method are appropriate for a standard ATAC-seq motif analysis.
+          </p>
+          <p>
+            <strong>Step 5:</strong> Click <strong>Submit</strong>. AME will queue your job and display a job ID. For a file this size the analysis typically completes within 2 to 5 minutes. The page will automatically update when your results are ready, or you can bookmark the results URL and return to it later.
+          </p>
+        </section>
+
+        <section id="phase-5">
+          <h2>Interpreting the AME Results</h2>
+          <p>
+            When the analysis finishes, AME presents its results as a ranked table of enriched motifs. Each row represents one transcription factor motif from the JASPAR database. They are ordered from most enriched to least enriched. Let us go through what each column means.
+          </p>
+          <p>
+            <strong>Rank</strong> &mdash; The position in the ranked list. Rank 1 is the most significantly enriched motif in your peaks.
+          </p>
+          <p>
+            <strong>Motif ID and Motif Alt ID</strong> &mdash; The database identifier and the common name of the transcription factor. The common name is what you would look up in a biology textbook. For example, &ldquo;MA0080.5&rdquo; is the database ID and &ldquo;SPI1&rdquo; is the common name &mdash; SPI1 is the gene name for PU.1, the master regulator of myeloid cell identity.
+          </p>
+          <p>
+            <strong>Consensus</strong> &mdash; A simplified version of the motif sequence showing the most common base at each position. This is a text representation of what the sequence logo shows visually.
+          </p>
+          <p>
+            <strong>p-value</strong> &mdash; The statistical significance of the enrichment. This is calculated by comparing how frequently the motif appears in your peak sequences versus the shuffled background sequences. A smaller p-value means the enrichment is less likely to be due to chance.
+          </p>
+          <p>
+            <strong>adj. p-value</strong> &mdash; The p-value adjusted for multiple testing. Since AME tests hundreds of motifs simultaneously, it corrects for the fact that some enrichments would appear significant purely by chance. This is the value you should use when deciding which results to trust.
+          </p>
+          <p>
+            <strong>% Sequences with Motif (in peaks)</strong> &mdash; The percentage of your peak sequences that contain at least one instance of this motif. If 65% of your peaks contain a PU.1 motif, it means PU.1 binding sites are present in nearly two thirds of your open chromatin regions &mdash; a very strong signal.
+          </p>
+          <p>
+            <strong>% Sequences with Motif (in background)</strong> &mdash; The same statistic for the shuffled background sequences. The contrast between this number and the previous one is where the enrichment story lives. If 65% of peaks have the motif but only 12% of background sequences do, that is a dramatic and meaningful enrichment.
+          </p>
+
+          <h3 id="sequence-logo">The Sequence Logo</h3>
+          <p>
+            For each motif in the results table, you can click on the motif name to see its <strong>sequence logo</strong>. This is a graphical representation where each position of the motif is shown as a stack of letters. The height of the entire stack at a position indicates how important that position is for binding &mdash; tall stacks mean that base is almost always the same in real binding sites. The height of each individual letter within the stack indicates how often that specific base appears. These logos are the same images you see in published papers and in transcription factor databases like JASPAR and ENCODE.
+          </p>
+        </section>
+
+        <section id="phase-6">
+          <h2>The Biological Interpretation</h2>
+          <p>
+            Step back and consider what a meaningful result looks like for our specific dataset. We are analyzing ATAC-seq data from mouse monocytes &mdash; innate immune cells derived from the myeloid lineage. Several transcription factors are known to be master regulators of myeloid cell identity and are expected to show up near the top of any monocyte ATAC-seq motif analysis:
+          </p>
+          <p>
+            <strong>PU.1 (SPI1)</strong> is perhaps the single most important transcription factor for myeloid cell identity. It is a pioneer factor, meaning it has the ability to bind to compacted chromatin and initiate the opening process. Finding PU.1 motifs at the top of your enrichment list in a monocyte dataset would be strong biological validation that your experiment captured the true regulatory landscape of the cell type.
+          </p>
+          <p>
+            <strong>C/EBP family members (CEBPA, CEBPB, CEBPE)</strong> are co-regulators of myeloid differentiation that work closely with PU.1. Their motifs are typically enriched in monocyte and macrophage ATAC-seq data.
+          </p>
+          <p>
+            <strong>AP-1 family members (FOS, JUN, FOSL2)</strong> are broadly active in many cell types but particularly so in monocytes and macrophages due to their role in inflammatory signaling.
+          </p>
+          <p>
+            If these names appear near the top of your AME results with small adjusted p-values and high percentages of peaks containing the motif, it means your experiment successfully captured biologically meaningful open chromatin in the correct cell type. This is the computational equivalent of running a positive control that came out exactly as expected.
+          </p>
+          <blockquote>
+            <p><strong>What if you see unexpected results?</strong> Remember that our toy dataset only covers Chromosome 19, which represents about 3% of the mouse genome. The motif enrichment results from this subset may not perfectly represent what you would find in a full genome-wide analysis. Some expected motifs might not reach statistical significance simply because the sample size is small. This is not a failure &mdash; it is a consequence of the deliberate trade-off we made in Chapter 7 to use a single chromosome to keep the analysis accessible on a laptop.</p>
+          </blockquote>
+        </section>
+
+        <section id="phase-7">
+          <h2>Saving Your Results</h2>
+          <p>
+            Just like with GREAT in Chapter 12, AME results are not permanently stored on the server. Save them before closing the browser.
+          </p>
+          <p>
+            Look for the &ldquo;Download&rdquo; button or link on the AME results page. This will give you a zip archive containing a plain text file called <code>ame.tsv</code> &mdash; a tab-separated table of all enriched motifs with their statistics &mdash; as well as the HTML report with the visual logos.
+          </p>
+          <p>Once downloaded, move these files to your results folder:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>mkdir -p results/motifs
+
+mv ~/Downloads/ame_out.zip results/motifs/
+
+cd results/motifs/
+
+unzip ame_out.zip</code></pre>
+          </div>
+          <p>
+            <code>unzip</code> extracts the contents of a zip archive into the current folder. After running it, you will have all the AME result files organized inside <code>results/motifs/</code>.
+          </p>
+          <p>You can do a quick inspection of the text results file from the terminal:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>head -20 results/motifs/ame.tsv</code></pre>
+          </div>
+          <p>
+            This gives you the top enriched motifs as a plain text table that you can filter and sort using the <code>awk</code> and <code>sort</code> commands from Chapter 11 if you want to do further terminal-based exploration.
+          </p>
+        </section>
+
+        <section id="complete-picture">
+          <h2>The Complete Picture</h2>
+          <p>
+            Step back for a moment and consider what you have accomplished across Chapters 11, 12, and 13. You started with a file of raw coordinates output by MACS2. In Chapter 11 you learned to interrogate those coordinates directly &mdash; counting peaks, ranking them by strength, filtering for regions of interest. In Chapter 12 you annotated them with GREAT, discovering which genomic features they overlap with and which biological pathways are enriched near them. And now in Chapter 13 you have extracted the DNA sequences from inside those peaks, submitted them to a motif analysis server, and identified which transcription factor binding sequences are statistically overrepresented &mdash; giving you a mechanistic hypothesis about who is responsible for the chromatin accessibility you observed.
+          </p>
+          <p>
+            This is the complete interpretive arc of an ATAC-seq experiment: from raw coordinates to molecular mechanism. In a real research project, the motif enrichment results would generate specific testable hypotheses. If PU.1 motifs are the most enriched, you might follow up with a ChIP-seq experiment to confirm that PU.1 actually occupies those sites, or a knockdown experiment to test whether removing PU.1 closes the chromatin at those regions. Every downstream experiment in the wet lab starts from a computational observation like the one you just made.
+          </p>
+        </section>
+
+        <section id="next-step">
+          <h2>Next Step</h2>
+          <p>
+            You have now completed the full analytical pipeline &mdash; from raw sequencing reads through quality control, adapter trimming, genome alignment, peak calling, visualization, peak exploration, genomic annotation, and transcription factor motif enrichment. The skills you have built &mdash; navigating the terminal, managing conda environments, chaining commands with pipes, understanding genomic file formats, and interpreting statistical results in a biological context &mdash; are the same foundation used by professional computational biologists every day.
+          </p>
+          <p>
+            From here, the natural directions for deeper learning include performing the same analysis with multiple biological replicates to enable differential accessibility testing with DESeq2, integrating your ATAC-seq peaks with RNA-seq data to link chromatin accessibility to gene expression, or exploring footprinting analysis with tools like TOBIAS to identify the precise base-pair positions of transcription factor occupancy within your peaks. Each of those directions builds directly on the foundation you have established throughout this handbook.
+          </p>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <nav class="chapter-nav">
+    <a href="chapter_12.html">
+      <span class="nav-arrow">&larr;</span>
+      <span class="nav-direction">Previous</span>
+    </a>
+  </nav>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Bioinformatics by Yerkem Shakhman. Built for wet lab researchers and students in computational biology.</p>
+  </footer>
+
+  <script src="blog-post-ui.js"></script>
+</body>
+</html>

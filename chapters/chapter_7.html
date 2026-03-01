@@ -47,17 +47,17 @@
                 <li><a href="#aligner-comparison">Know Your Aligners</a></li>
               </ul>
             </li>
-            <li><a href="#installation">Phase 1: Installation and Setup</a></li>
+            <li><a href="#installation">Installation and Setup</a></li>
             <li>
-              <a href="#reference-genome">Phase 2: The Reference Genome</a>
+              <a href="#reference-genome">The Reference Genome</a>
               <ul>
                 <li><a href="#download-reference">Download the Reference</a></li>
                 <li><a href="#build-index">Build the Index</a></li>
               </ul>
             </li>
-            <li><a href="#alignment">Phase 3: The Alignment</a></li>
+            <li><a href="#alignment">The Alignment</a></li>
             <li>
-              <a href="#filtering">Phase 4: The Clean-Up</a>
+              <a href="#filtering">The Clean-Up</a>
               <ul>
                 <li><a href="#align-with-filters">Align with Filters</a></li>
                 <li><a href="#remove-mito">Remove Mitochondrial Reads</a></li>
@@ -139,7 +139,7 @@
         </section>
 
         <section id="installation">
-          <h2>Phase 1: Installation and Setup</h2>
+          <h2>Installation and Setup</h2>
           <p>
             First, we must install Chromap into our environment.
           </p>
@@ -165,7 +165,7 @@ mkdir -p results/chromap</code></pre>
         </section>
 
         <section id="reference-genome">
-          <h2>Phase 2: The Reference Genome (Toy vs. Real)</h2>
+          <h2>The Reference Genome (Toy vs. Real)</h2>
           <p>
             To map our reads, we need a map. In a professional research setting using a High-Performance Computing (HPC) cluster, you would download the <strong>entire</strong> mouse genome (all 20 chromosomes + scaffolds).
           </p>
@@ -173,7 +173,7 @@ mkdir -p results/chromap</code></pre>
             However, indexing a full mammalian genome requires significant RAM (often &gt;32 GB), which will crash a standard laptop. Since this handbook is designed to be accessible to everyone, we will use a <strong>"Toy Reference"</strong>: we will align our reads only to <strong>Chromosome 19</strong>. This single chromosome is small and gene-rich, allowing us to demonstrate the exact principles of alignment in seconds rather than hours.
           </p>
 
-          <h3 id="download-reference">Step 1: Download the Reference</h3>
+          <h3 id="download-reference">Download the Reference</h3>
           <p>
             We will download the sequence for Chromosome 19 from the UCSC Genome Browser database.
           </p>
@@ -188,7 +188,7 @@ wget https://hgdownload.soe.ucsc.edu/goldenPath/mm10/chromosomes/chr19.fa.gz
 gunzip chr19.fa.gz</code></pre>
           </div>
 
-          <h3 id="build-index">Step 2: Build the Index</h3>
+          <h3 id="build-index">Build the Index</h3>
           <p>
             Before a computer can search a genome, it must build an <strong>Index</strong>. Think of this like the index at the back of a massive textbook. Without it, finding a specific sentence would require reading the whole book every time. With an index, the computer can jump instantly to the right location.
           </p>
@@ -212,7 +212,7 @@ Index built successfully.</code></pre>
         </section>
 
         <section id="alignment">
-          <h2>Phase 3: The Alignment (Mapping the Reads)</h2>
+          <h2>The Alignment (Mapping the Reads)</h2>
           <p>
             Now we are ready to map. We will take our <strong>trimmed</strong> reads from the previous chapter and align them to our new <strong>chr19 index</strong>.
           </p>
@@ -248,7 +248,7 @@ Mapped reads: 85,432  (Note: Low mapping is expected because we are only mapping
         </section>
 
         <section id="filtering">
-          <h2>Phase 4: The Clean-Up (Filtering)</h2>
+          <h2>The Clean-Up (Filtering)</h2>
           <p>
             We now have an aligned file (<code>aligned.bed</code>), but it is "dirty." It contains three types of villains that ruin ATAC-seq analysis:
           </p>
@@ -261,7 +261,7 @@ Mapped reads: 85,432  (Note: Low mapping is expected because we are only mapping
             We will now re-run the alignment, but this time we will turn on Chromap's powerful internal filters to handle villains #1 and #2 automatically.
           </p>
 
-          <h3 id="align-with-filters">Step 1: Align with Filters</h3>
+          <h3 id="align-with-filters">Align with Filters</h3>
           <div class="code-cell">
             <button class="copy-btn" aria-label="Copy to clipboard">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -280,7 +280,7 @@ Mapped reads: 85,432  (Note: Low mapping is expected because we are only mapping
             <p><strong>Why <code>.bed</code> format?</strong> You may notice we are outputting a <code>.bed</code> file instead of the massive <code>.bam</code> files used in older pipelines. Chromap is optimized to produce BED fragment files. They are significantly smaller (text-based) and faster to generate, fitting our goal of a lightweight, efficient pipeline. They contain all the necessary information (Chromosome, Start, End) for the next step: Peak Calling.</p>
           </blockquote>
 
-          <h3 id="remove-mito">Step 2: Remove Mitochondrial Reads</h3>
+          <h3 id="remove-mito">Remove Mitochondrial Reads</h3>
           <p>
             Chromap handles duplicates and quality, but it leaves the Mitochondria ("chrM") behind. Since our output is a simple text file, we can use the command-line tool <code>grep</code> to physically remove any line that mentions "chrM".
           </p>

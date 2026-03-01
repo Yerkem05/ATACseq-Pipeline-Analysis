@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visual Verification – Seeing is Believing</title>
+  <title>Visualization: Exploring Your Data in the Genome Browser</title>
   <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -18,7 +18,7 @@
 
   <article class="blog-article">
     <header class="article-header">
-      <h1 class="article-title">Visual Verification – Seeing is Believing</h1>
+      <h1 class="article-title">Visualization: Exploring Your Data in the Genome Browser</h1>
       <p class="article-subtitle">In this section, we will navigate the cloud-based <strong>IGV Web App</strong> without needing complex software installation, visualize processed genomic data by loading signal tracks and statistical calls, verify the success of the analysis pipeline by performing a visual "Sanity Check" on specific genes, and interpret the biological relationship between raw sequencing density (BigWig) and statistical significance (Peaks).</p>
       <figure class="article-figure">
         <img src="../images/atac_seq.png" alt="Visual verification of ATAC-seq results in IGV">
@@ -42,21 +42,21 @@
           <ul class="toc-list">
             <li><a href="#the-concept">The Concept: The "Zero-Install" Solution</a></li>
             <li>
-              <a href="#phase-1">Phase 1: Launching the Genome Browser</a>
+              <a href="#phase-1">Launching the Genome Browser</a>
               <ul>
                 <li><a href="#open-app">Open the App</a></li>
                 <li><a href="#select-genome">Select Your Genome</a></li>
               </ul>
             </li>
             <li>
-              <a href="#phase-2">Phase 2: Loading Your Data</a>
+              <a href="#phase-2">Loading Your Data</a>
               <ul>
                 <li><a href="#locate-files">Locate Your Files</a></li>
                 <li><a href="#drag-drop">Drag and Drop</a></li>
               </ul>
             </li>
             <li>
-              <a href="#phase-3">Phase 3: The Sanity Check</a>
+              <a href="#phase-3">The Sanity Check</a>
               <ul>
                 <li><a href="#navigate-data">Navigate to the Data</a></li>
                 <li><a href="#zoom-gene">Zoom to a Gene</a></li>
@@ -84,10 +84,10 @@
         </section>
 
         <section id="phase-1">
-          <h2>Phase 1: Launching the Genome Browser</h2>
+          <h2>Launching the Genome Browser</h2>
           <p>Let's set up our digital microscope.</p>
 
-          <h3 id="open-app">Step 1: Open the App</h3>
+          <h3 id="open-app">Open the App</h3>
           <p>Open your web browser and navigate to:</p>
           <div class="code-cell">
             <button class="copy-btn" aria-label="Copy to clipboard">
@@ -99,7 +99,7 @@
             <strong>Expected Output:</strong> You will see a clean, white interface with a genome track ruler at the top. By default, it usually loads the Human genome (hg38).
           </p>
 
-          <h3 id="select-genome">Step 2: Select Your Genome</h3>
+          <h3 id="select-genome">Select Your Genome</h3>
           <p>
             In the top-left corner, you will see a dropdown menu (likely labeled "Genomes"). Click it and select <strong>Mouse (mm10)</strong>.
           </p>
@@ -112,10 +112,10 @@
         </section>
 
         <section id="phase-2">
-          <h2>Phase 2: Loading Your Data</h2>
+          <h2>Loading Your Data</h2>
           <p>Now we populate the empty map with our own scientific discoveries.</p>
 
-          <h3 id="locate-files">Step 1: Locate Your Files</h3>
+          <h3 id="locate-files">Locate Your Files</h3>
           <p>
             Open your file manager (Finder on Mac or File Explorer on Windows) and navigate to your project folder (<code>atacseq</code>). You need the two files we generated in the previous chapters:
           </p>
@@ -124,7 +124,7 @@
             <li><strong>The Peak Calls:</strong> <code>results/peaks/ENCFF535OGL_peaks.narrowPeak</code> (This is the "Verdict")</li>
           </ul>
 
-          <h3 id="drag-drop">Step 2: Drag and Drop</h3>
+          <h3 id="drag-drop">Drag and Drop</h3>
           <p>
             Simply click both files and <strong>drag them</strong> from your folder directly onto the white space in the web browser window.
           </p>
@@ -138,12 +138,12 @@
         </section>
 
         <section id="phase-3">
-          <h2>Phase 3: The Sanity Check (Verification)</h2>
+          <h2>The Sanity Check (Verification)</h2>
           <p>
             Right now, you are looking at the data from "outer space"&mdash;zoomed out to show the entire genome. To verify that your analysis pipeline (Trimming &rarr; Alignment &rarr; Filtering &rarr; Peak Calling) actually worked, we need to zoom in to "street view" and check a specific biological landmark.
           </p>
 
-          <h3 id="navigate-data">Step 1: Navigate to the Data</h3>
+          <h3 id="navigate-data">Navigate to the Data</h3>
           <p>In the search bar at the top of the IGV window, type the following and press <strong>Enter</strong>:</p>
           <div class="code-cell">
             <button class="copy-btn" aria-label="Copy to clipboard">
@@ -155,7 +155,7 @@
             <p><strong>Why chr19?</strong> Remember, to save time and RAM, we only aligned reads to Chromosome 19. The rest of the genome is empty!</p>
           </blockquote>
 
-          <h3 id="zoom-gene">Step 2: Zoom to a Gene</h3>
+          <h3 id="zoom-gene">Zoom to a Gene</h3>
           <p>
             Now, let's find a specific gene to audit our results. Type the following in the search bar and press <strong>Enter</strong>:
           </p>
@@ -202,6 +202,10 @@
     <a href="chapter_9.html">
       <span class="nav-arrow">&larr;</span>
       <span class="nav-direction">Previous</span>
+    </a>
+    <a href="chapter_11.html">
+      <span class="nav-direction">Next</span>
+      <span class="nav-arrow">&rarr;</span>
     </a>
   </nav>
 

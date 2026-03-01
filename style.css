@@ -96,6 +96,11 @@ strong {
   margin-bottom: 4rem;
 }
 
+.blog-post + .blog-post {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 4rem;
+}
+
 .blog-post:last-child {
   margin-bottom: 0;
 }

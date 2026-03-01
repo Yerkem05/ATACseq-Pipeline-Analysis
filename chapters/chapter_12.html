@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peak Annotation with GREAT: Putting Your Peaks on the Map</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="scroll-progress-wrap"><div class="scroll-progress-bar"></div></div>
+
+  <header class="site-header">
+    <a href="../index.html" class="site-title">Bioinformatics</a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+    </nav>
+  </header>
+
+  <article class="blog-article">
+    <header class="article-header">
+      <h1 class="article-title">Peak Annotation with GREAT: Putting Your Peaks on the Map</h1>
+      <p class="article-subtitle">In this chapter, we will verify and prepare our narrowPeak file for submission to the GREAT web tool, convert it to the correct format, upload our peak coordinates to the Genomic Regions Enrichment of Annotations Tool, interpret the genomic annotation output to understand whether our open chromatin regions fall at promoters, enhancers, or intergenic regions, and extract biological meaning from the pathway enrichment results that GREAT automatically generates alongside the annotation.</p>
+      <figure class="article-figure">
+        <img src="../images/atac_seq.png" alt="Peak annotation with GREAT for ATAC-seq analysis">
+      </figure>
+      <div class="article-meta">
+        <div class="meta-column">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Yerkem Shakhman</span>
+        </div>
+        <div class="meta-column">
+          <span class="meta-label">Chapter</span>
+          <span class="meta-value">12 &mdash; Peak Annotation</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <aside class="article-toc">
+        <h2 class="toc-title">Contents</h2>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li><a href="#address-problem">The Address Problem</a></li>
+            <li><a href="#phase-1">Verifying Your Peak File</a></li>
+            <li><a href="#phase-2">Preparing the File for GREAT</a></li>
+            <li><a href="#phase-3">Understanding What GREAT Needs</a></li>
+            <li><a href="#phase-4">Submitting to GREAT</a></li>
+            <li>
+              <a href="#phase-5">Interpreting the Results Page</a>
+              <ul>
+                <li><a href="#region-gene">Region-Gene Association Graphs</a></li>
+                <li><a href="#go-bp">GO Biological Process</a></li>
+                <li><a href="#go-mf">GO Molecular Function</a></li>
+                <li><a href="#no-terms">Sections Labeled &ldquo;No Terms&rdquo;</a></li>
+                <li><a href="#complete-picture">The Complete Picture</a></li>
+              </ul>
+            </li>
+            <li><a href="#phase-6">Saving Your Results</a></li>
+            <li><a href="#next-step">Next Step</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="article-content">
+
+        <section id="address-problem">
+          <h2>The Address Problem</h2>
+          <p>
+            Imagine you have a list of GPS coordinates &mdash; latitude and longitude numbers for 847 different locations. Those coordinates are precise, but they are meaningless until you overlay them on a map and discover that one is inside a hospital, another is in a parking lot, and a third is on the roof of a school. The coordinates have not changed, but now they have context. Now they mean something.
+          </p>
+          <p>
+            This is exactly the problem we face with our peaks. We have precise genomic coordinates, but we do not yet know whether they sit at gene promoters, inside gene bodies, between genes, or somewhere else entirely. Assigning peaks to genomic features is called <strong>peak annotation</strong>, and it is one of the most important interpretive steps in any ATAC-seq analysis.
+          </p>
+          <p>
+            The reason it matters so much is biological. A peak at a promoter &mdash; the region just upstream of where a gene starts &mdash; strongly suggests that the gene is being actively transcribed. A peak in an intergenic region far from any gene might mark an enhancer, a long-range regulatory element that controls gene expression from a distance. A peak inside a gene body could indicate alternative transcription or regulatory complexity. Where your peak is tells you something completely different about what is happening biologically.
+          </p>
+          <p>
+            To perform this annotation we will use <strong>GREAT</strong>, which stands for Genomic Regions Enrichment of Annotations Tool, developed at Stanford University. GREAT is a web-based tool &mdash; you submit your peak coordinates through a browser and it returns a comprehensive annotation report. This means no installation, no disk space requirements, and no compatibility issues with your Apple Silicon chip. It is widely used in published epigenomics research and is scientifically rigorous.
+          </p>
+          <p>
+            GREAT also does something that pure annotation tools do not: alongside telling you where your peaks are, it automatically asks which biological pathways and gene functions are enriched near those peaks. This means in a single submission you get both the positional annotation and a first-pass biological interpretation of what those open chromatin regions might be doing.
+          </p>
+        </section>
+
+        <section id="phase-1">
+          <h2>Verifying Your Peak File</h2>
+          <p>
+            Before we submit anything to a web tool, we need to confirm that our peak file is intact, properly formatted, and contains what we expect. This is the computational equivalent of running a quick Nanodrop before loading your sample on a gel &mdash; a simple sanity check before committing to the next step.
+          </p>
+          <p>First, navigate to your project folder and make sure your environment is active:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cd ~/atacseq_og
+
+conda activate bio-tools</code></pre>
+          </div>
+          <p>Now let us confirm the peak file exists and check its size:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>ls -lh results/peaks/ENCFF535OGL_peaks.narrowPeak</code></pre>
+          </div>
+          <p>
+            <code>ls -lh</code> lists files in long format with human-readable file sizes. You should see the file listed with a size in the range of a few kilobytes to a few hundred kilobytes. If the file is missing or shows 0 bytes, something went wrong in Chapter 8 and you would need to re-run MACS2.
+          </p>
+          <p>Now confirm how many peaks are inside:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>wc -l results/peaks/ENCFF535OGL_peaks.narrowPeak</code></pre>
+          </div>
+          <p>You should see a number in the hundreds, consistent with what you found in Chapter 11. Now look at the first three lines to confirm the format:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>head -3 results/peaks/ENCFF535OGL_peaks.narrowPeak</code></pre>
+          </div>
+          <p>
+            You will see tab-separated lines beginning with <code>chr19</code> followed by coordinates and then additional columns containing decimal numbers &mdash; fold enrichment values and statistical scores that MACS2 adds to the file. These columns are useful for our own analysis as you saw in Chapter 11, but they create a problem for GREAT.
+          </p>
+        </section>
+
+        <section id="phase-2">
+          <h2>Preparing the File for GREAT</h2>
+          <p>
+            GREAT expects a clean BED file &mdash; specifically it reads the first three columns (chromosome, start, end) and interprets any additional columns as standard BED format fields which expect integers, not decimal numbers. When GREAT encounters the decimal values in columns 7, 8, and 9 of the narrowPeak format &mdash; the fold enrichment and p-value scores &mdash; it throws a formatting error and refuses to process the file.
+          </p>
+          <p>
+            The fix is straightforward. We strip the file down to just the three columns that GREAT actually needs, discarding everything else. Think of it like preparing a sample for a specific assay &mdash; you do not load your entire crude lysate onto a mass spectrometer, you first clean it up and give the instrument only what it is designed to receive.
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>awk '{print $1"\t"$2"\t"$3}' results/peaks/ENCFF535OGL_peaks.narrowPeak > results/peaks/peaks_for_GREAT.bed</code></pre>
+          </div>
+          <p>
+            This <code>awk</code> command reads every line of the narrowPeak file and prints only the first three columns &mdash; chromosome, start coordinate, and end coordinate &mdash; separated by tabs into a new file called <code>peaks_for_GREAT.bed</code>. All the decimal-containing statistical columns are simply dropped because GREAT has no use for them.
+          </p>
+          <p>Verify the output looks correct:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>head -3 results/peaks/peaks_for_GREAT.bed</code></pre>
+          </div>
+          <p>You should now see clean three-column output with no decimal numbers anywhere:</p>
+          <div class="code-cell">
+            <pre><code>chr19   3227088   3227464
+chr19   4078350   4078550
+chr19   4793955   4794155</code></pre>
+          </div>
+          <p>Confirm the number of peaks is preserved:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>wc -l results/peaks/peaks_for_GREAT.bed</code></pre>
+          </div>
+          <p>
+            This number should match exactly what you saw when you ran <code>wc -l</code> on the original narrowPeak file. If the numbers differ, something went wrong with the <code>awk</code> command and you should run it again.
+          </p>
+        </section>
+
+        <section id="phase-3">
+          <h2>Understanding What GREAT Needs</h2>
+          <p>
+            GREAT works by associating each of your peaks with nearby genes using a regulatory domain model &mdash; essentially drawing a zone of influence around each gene and asking which peaks fall within that zone. For this to work correctly, GREAT needs to know which genome assembly your coordinates came from. As established in Chapter 7, all of our analysis used <strong>mm10</strong>. Submitting coordinates from mm10 to a tool configured for mm9 or mm39 would produce completely wrong associations, exactly like looking up a street address in the wrong city&rsquo;s map.
+          </p>
+        </section>
+
+        <section id="phase-4">
+          <h2>Submitting to GREAT</h2>
+          <p>Open your web browser and navigate to:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>http://great.stanford.edu/public/html/</code></pre>
+          </div>
+          <p>You will see the GREAT submission page with a clean interface. Work through the fields in order.</p>
+
+          <p>
+            <strong>Step 1 &mdash; Species Assembly:</strong> In the dropdown menu at the top, select <strong>Mouse: NCBI Build 38 (UCSC mm10)</strong>. This must match the genome you used for alignment in Chapter 7.
+          </p>
+          <p>
+            <strong>Step 2 &mdash; Test Regions:</strong> Click &ldquo;Choose File&rdquo; under the &ldquo;Upload a region file&rdquo; section and navigate to <code>results/peaks/peaks_for_GREAT.bed</code> on your computer. This is the clean three-column file you just created. If the file upload button gives you trouble, you can alternatively print the file contents to your terminal and paste them directly into the text box:
+          </p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>cat results/peaks/peaks_for_GREAT.bed</code></pre>
+          </div>
+          <p>
+            <code>cat</code> prints the entire contents of a file to the terminal screen. You can then select all the output, copy it, and paste it into the GREAT text input box.
+          </p>
+          <p>
+            <strong>Step 3 &mdash; Background Regions:</strong> Leave this set to the default, which is &ldquo;Whole genome.&rdquo; This tells GREAT to compare your peaks against the entire mouse genome as background. In a more advanced analysis you might provide a custom background, but for this experiment the whole genome default is appropriate and standard.
+          </p>
+          <p>
+            <strong>Step 4:</strong> Click the <strong>Submit</strong> button.
+          </p>
+          <p>
+            GREAT will begin processing your submission. For a file this size the analysis typically takes between 30 seconds and 2 minutes. When the analysis is complete, GREAT will automatically redirect you to the results page.
+          </p>
+        </section>
+
+        <section id="phase-5">
+          <h2>Interpreting the Results Page</h2>
+
+          <h3 id="region-gene">The Region-Gene Association Graphs</h3>
+          <p>
+            The first thing you see at the top of the results page is a set of three graphs under the heading &ldquo;Region-Gene Association Graphs.&rdquo; These tell you, before any biology, whether your peaks were successfully connected to genes and how far they sit from gene start sites.
+          </p>
+          <figure class="article-figure">
+            <img src="../images/regions.png" alt="Next-generation sequencing and quality control overview">
+          </figure>
+          <p>
+            <strong>The left graph &mdash; Number of associated genes per region</strong> shows how many genes each of your peaks was linked to. The majority of your peaks are associated with 2 nearby genes, a smaller fraction with 1 gene, and almost none are completely isolated from any gene. The small red bar at zero represents peaks that could not be connected to any gene &mdash; if this is zero it means GREAT successfully associated every single one of your peaks with at least one nearby gene. This is a good sign.
+          </p>
+          <figure class="article-figure">
+            <img src="../images/tss.png" alt="Next-generation sequencing and quality control overview">
+          </figure>
+          <p>
+            <strong>The middle and right graphs &mdash; Distance to TSS</strong> are the most important quality check in this section. They show how far your peaks are from the nearest Transcription Start Site &mdash; the exact point on the DNA where a gene begins to be read. Look at the right graph showing absolute distance. You will see that the largest category is peaks falling 50 to 500 kilobases from a TSS, followed by peaks at 0 to 5 kilobases, with a meaningful fraction at 5 to 50 kilobases.
+          </p>
+          <p>
+            This distribution is exactly what you expect from a healthy ATAC-seq experiment. Peaks very close to a TSS (0 to 5kb) represent open promoters &mdash; the immediate regulatory region where transcription machinery assembles. Peaks at 50 to 500kb represent distal enhancers &mdash; regulatory elements that control gene expression from a distance by physically looping through three-dimensional space to contact their target promoter. The fact that you see peaks spread across both categories tells you that your experiment captured both types of regulatory elements, which is precisely what ATAC-seq is designed to do.</p>
+          </p>
+
+          <h3 id="go-bp">GO Biological Process &mdash; What Pathways Are Enriched?</h3>
+          <p>
+            Scroll down to the section labeled <strong>&ldquo;GO Biological Process.&rdquo;</strong> The number in parentheses next to the heading tells you immediately how many biological process terms reached statistical significance. This number directly reflects the size of your dataset &mdash; because we only used Chromosome 19 in our toy dataset, statistical power is limited and you will see only a small number of significant terms. In a complete genome-wide experiment you would typically see dozens to hundreds of enriched terms. Do not interpret a small number here as a failure &mdash; it is a consequence of the deliberate trade-off made in Chapter 7 to keep the analysis accessible on a laptop.
+          </p>
+          <figure class="article-figure">
+            <img src="../images/go.png" alt="Next-generation sequencing and quality control overview">
+          </figure>
+          <p>
+            The significant terms you will see are centered on the <strong>epoxygenase P450 pathway</strong>, <strong>arachidonic acid metabolic process</strong>, and <strong>unsaturated fatty acid metabolic process</strong>. Each row in this table contains several columns worth understanding:
+          </p>
+          <p><strong>Binom Rank</strong> &mdash; The rank of this term by binomial test significance. Rank 1 is the most significantly enriched term.</p>
+          <p><strong>Binom Raw P-Value</strong> &mdash; The raw statistical significance before correction. Smaller means more significant.</p>
+          <p><strong>Binom FDR Q-Val</strong> &mdash; The false discovery rate corrected p-value. This is the value you should use when deciding which results to trust. Any value below 0.05 is considered significant.</p>
+          <p><strong>Binom Fold Enrichment</strong> &mdash; How many times more frequently this term appears near your peaks compared to what you would expect by chance from a random set of genomic regions. A fold enrichment of 56 means that genes associated with this pathway are 56 times more likely to be near your peaks than expected.</p>
+          <p><strong>Binom Observed Region Hits</strong> &mdash; How many of your actual peaks contributed to this enrichment. This tells you whether the signal is coming from many peaks or just one or two.</p>
+          <p><strong>Hyper FDR Q-Val and Hyper Fold Enrichment</strong> &mdash; The same statistics calculated using a hypergeometric test rather than a binomial test. When both the binomial and hypergeometric values agree and are both significant, you can be particularly confident in the result.</p>
+          <p>
+            At first glance, seeing lipid metabolism and P450 pathways rather than classic immune terms like &ldquo;inflammatory response&rdquo; might seem surprising for a monocyte dataset. However this result makes complete biological sense when you consider the geography of the mouse genome. Chromosome 19 in mice contains a large cluster of Cytochrome P450 genes from the Cyp2 family. These enzymes are expressed in monocytes and macrophages and are directly involved in converting arachidonic acid into epoxyeicosatrienoic acids &mdash; anti-inflammatory lipid mediators that modulate immune cell responses. The open chromatin you detected on Chromosome 19 is sitting near these actively expressed P450 genes, which is exactly what you would expect in an immune cell. The fact that GREAT recovered this biologically coherent signal from a small number of peaks on a single chromosome is actually a strong validation that your pipeline worked correctly.</p>
+          </p>
+
+          <h3 id="go-mf">GO Molecular Function &mdash; What Are These Genes Doing at the Molecular Level?</h3>
+          <p>
+            The next section, <strong>&ldquo;GO Molecular Function,&rdquo;</strong> goes one level deeper and asks not what biological process these genes participate in, but what molecular activity they carry out at the biochemical level.
+          </p>
+          <figure class="article-figure">
+            <img src="../images/func.png" alt="Next-generation sequencing and quality control overview">
+          </figure>
+          <p>
+            The top terms here &mdash; arachidonic acid epoxygenase activity, arachidonic acid monooxygenase activity, aromatase activity, and steroid hydroxylase activity &mdash; all describe the same family of enzymatic reactions: using molecular oxygen to chemically modify lipids and steroids. Further down the list you will see heme binding and iron ion binding, which makes sense because cytochrome P450 enzymes are heme-containing proteins that require iron at their active site to function.
+          </p>
+          <p>
+            These molecular function terms are internally consistent &mdash; they all point to the same underlying biology of the P450 gene cluster on Chromosome 19. When you see multiple independent terms from different parts of the ontology database all pointing toward the same biology, it is a strong indicator that the signal is real rather than statistical noise.
+          </p>
+
+          <h3 id="no-terms">Sections Labeled &ldquo;No Terms&rdquo;</h3>
+          <p>
+            You will also notice several sections labeled <strong>&ldquo;no terms&rdquo;</strong> &mdash; Human Phenotype, Mouse Phenotype Single KO, and Mouse Phenotype. This simply means that with peaks from one chromosome, there was not enough statistical evidence to reach significance in these more specific phenotype databases. This is expected behavior for a toy dataset and not a cause for concern. In a full genome-wide experiment these sections would likely contain significant terms connecting your open chromatin regions to known mouse phenotypes and disease associations.
+          </p>
+
+          <h3 id="complete-picture">The Complete Picture from These Results</h3>
+          <p>
+            Stepping back, your GREAT results tell a coherent biological story. The peaks you called on Chromosome 19 are distributed across both proximal promoters and distal enhancers as expected for good quality ATAC-seq data. The genes near those peaks are enriched for cytochrome P450 and arachidonic acid metabolism functions, which reflects the known biology of the Cyp2 gene cluster on Chromosome 19 and is entirely consistent with monocyte gene expression. Every significant term points in the same biological direction, which is exactly the kind of internal consistency that distinguishes a successful experiment from noise.
+          </p>
+          <p>
+            In a full genome-wide experiment using all chromosomes, these same P450 terms would likely still appear but would be joined by many more immune-specific terms &mdash; toll-like receptor signaling, cytokine production, NF-&kappa;B pathway activation &mdash; that are distributed across other chromosomes not included in this toy analysis.
+          </p>
+        </section>
+
+        <section id="phase-6">
+          <h2>Saving Your Results</h2>
+          <p>
+            GREAT results are not permanent &mdash; the server will delete them after a period of time. Before closing the browser, save your results.
+          </p>
+          <p>
+            At the top of the results page, look for the <strong>&ldquo;Global Export&rdquo;</strong> dropdown menu and click it to save a full report of the analysis. Additionally, within each ontology table such as GO Biological Process and GO Molecular Function, look for the small <strong>&ldquo;Export&rdquo;</strong> dropdown on the left side of the table controls. Set it to &ldquo;All data as text file&rdquo; and click the export button to download each table as a plain text file.
+          </p>
+          <p>Back in your terminal, create a dedicated folder for these results:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>mkdir -p results/annotation</code></pre>
+          </div>
+          <p>Move the downloaded files into this folder. On macOS, files download to your Downloads folder by default:</p>
+          <div class="code-cell">
+            <button class="copy-btn" aria-label="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code>mv ~/Downloads/GREAT_*.txt results/annotation/</code></pre>
+          </div>
+          <p>This keeps your results organized following the same principles established in Chapter 2.</p>
+        </section>
+
+        <section id="next-step">
+          <h2>Next Step</h2>
+          <p>
+            You have successfully annotated your peaks. You now know not just where your open chromatin regions are as raw coordinates, but what they are in genomic context &mdash; distributed across both proximal promoters and distal enhancers &mdash; and which biological pathways are enriched among the genes associated with them. You have gone from a list of genomic coordinates to a biologically coherent narrative about the regulatory landscape of mouse monocytes on Chromosome 19.
+          </p>
+          <p>
+            The next question is deeper and more mechanistic: who is responsible for opening this chromatin? Open chromatin does not open itself. Transcription factors bind to specific DNA sequences and recruit the machinery that displaces nucleosomes and creates accessibility. If we can identify which transcription factor binding motifs are enriched inside our peaks, we can make strong predictions about which transcription factors are active and driving the regulatory state of the cell. Answering that question requires extracting the actual DNA sequences from inside our peaks and submitting them to a motif analysis tool. That is exactly what we will do in Chapter 13.
+          </p>
+        </section>
+      </div>
+    </div>
+  </article>
+
+  <nav class="chapter-nav">
+    <a href="chapter_11.html">
+      <span class="nav-arrow">&larr;</span>
+      <span class="nav-direction">Previous</span>
+    </a>
+    <a href="chpater_13.html">
+      <span class="nav-direction">Next</span>
+      <span class="nav-arrow">&rarr;</span>
+    </a>
+  </nav>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Bioinformatics by Yerkem Shakhman. Built for wet lab researchers and students in computational biology.</p>
+  </footer>
+
+  <script src="blog-post-ui.js"></script>
+</body>
+</html>

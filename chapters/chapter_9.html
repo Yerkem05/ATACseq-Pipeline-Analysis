@@ -41,16 +41,16 @@
         <nav class="toc-nav">
           <ul class="toc-list">
             <li><a href="#the-concept">The Concept: From Spreadsheets to Landscapes</a></li>
-            <li><a href="#phase-1">Phase 1: Tool Installation</a></li>
+            <li><a href="#phase-1">Tool Installation</a></li>
             <li>
-              <a href="#phase-2">Phase 2: Defining the Map Boundaries</a>
+              <a href="#phase-2">Defining the Map Boundaries</a>
               <ul>
                 <li><a href="#calculate-size">Calculate the Size</a></li>
                 <li><a href="#create-sizes-file">Create the Sizes File</a></li>
               </ul>
             </li>
             <li>
-              <a href="#phase-3">Phase 3: Creating the Coverage Track</a>
+              <a href="#phase-3">Creating the Coverage Track</a>
               <ul>
                 <li><a href="#bed-to-bedgraph">Calculate Coverage</a></li>
                 <li><a href="#sort-data">Sort the Data</a></li>
@@ -79,7 +79,7 @@
         </section>
 
         <section id="phase-1">
-          <h2>Phase 1: Tool Installation</h2>
+          <h2>Tool Installation</h2>
           <p>
             To perform this conversion, we need to add a few more tools to our bioinformatics toolkit. We need <strong><code>samtools</code></strong> to read the reference genome index, <strong><code>bedtools</code></strong> to calculate the coverage (the "Swiss Army Knife" of genomics), and <strong><code>ucsc-bedgraphtobigwig</code></strong> to perform the final compression.
           </p>
@@ -100,12 +100,12 @@ conda install -c bioconda bedtools ucsc-bedgraphtobigwig</code></pre>
         </section>
 
         <section id="phase-2">
-          <h2>Phase 2: Defining the Map Boundaries (Chromosome Sizes)</h2>
+          <h2>Defining the Map Boundaries (Chromosome Sizes)</h2>
           <p>
             Before we can build a map of our reads, the computer needs to know the boundaries of the territory. Since we are using our "Toy" reference genome (Chromosome 19), we need a simple text file that tells the software exactly how long Chromosome 19 is. Without this, the software won't know when to stop drawing the map.
           </p>
 
-          <h3 id="calculate-size">Step 1: Calculate the Size</h3>
+          <h3 id="calculate-size">Calculate the Size</h3>
           <p>
             We do not need to look up this information online; we can derive it directly from the reference file (<code>chr19.fa</code>) we downloaded in Chapter 6. We use <code>samtools faidx</code> (Fasta Index) to scan the file and count the bases.
           </p>
@@ -129,7 +129,7 @@ cat chr19.fa.fai</code></pre>
             The second number, <strong><code>61431566</code></strong>, is the critical piece of information: it is the exact length of Chromosome 19 in base pairs.
           </p>
 
-          <h3 id="create-sizes-file">Step 2: Create the Sizes File (Avoiding the "Hidden Character" Trap)</h3>
+          <h3 id="create-sizes-file">Create the Sizes File (Avoiding the "Hidden Character" Trap)</h3>
           <p>Now we need to save this name and number into a file named <code>chr19.chrom.sizes</code>.</p>
           <blockquote>
             <p><strong>Important Formatting Note:</strong> Bioinformatics tools are extremely strict about formatting. The columns in this file must be separated by a <strong>Tab</strong> character, not a Space. If you use a space, <code>bedtools</code> will fail to read the file. To ensure we create a perfect file, we use the <code>printf</code> command with <code>\t</code>, which forces the computer to insert a real Tab character.</p>
@@ -148,12 +148,12 @@ printf "chr19\t61431566\n" > reference_data/chr19.chrom.sizes</code></pre>
         </section>
 
         <section id="phase-3">
-          <h2>Phase 3: Creating the Coverage Track (The BigWig)</h2>
+          <h2>Creating the Coverage Track (The BigWig)</h2>
           <p>
             Now that we have our map boundaries, we can convert our raw reads into a visual track. This is a standard three-step pipeline: <strong>Count → Sort → Compress</strong>.
           </p>
 
-          <h3 id="bed-to-bedgraph">Step 1: Calculate Coverage (BED to BedGraph)</h3>
+          <h3 id="bed-to-bedgraph">Calculate Coverage (BED to BedGraph)</h3>
           <p>
             We use <code>bedtools genomecov</code> to count the reads piling up at each base. We are taking our clean aligned reads (<code>final_clean_peaks.bed</code>) and asking the tool to output a "BedGraph" format text file.
           </p>
@@ -171,7 +171,7 @@ bedtools genomecov -i results/chromap/final_clean_peaks.bed \
             The <code>-i</code> flag specifies the input (your clean, aligned reads), <code>-g</code> provides the genome sizes file (the map boundaries), and <code>-bg</code> sets the output format (BedGraph text file). This command runs silently. If successful, it creates a new file <code>results/visualization/temp.bedgraph</code> and returns you to the command prompt.
           </p>
 
-          <h3 id="sort-data">Step 2: Sort the Data</h3>
+          <h3 id="sort-data">Sort the Data</h3>
           <p>
             The compression tool we use in the next step is picky; it requires the data to be sorted by chromosome position (from the beginning of the chromosome to the end). We use the <code>sort</code> command to arrange the lines numerically.
           </p>
@@ -185,7 +185,7 @@ bedtools genomecov -i results/chromap/final_clean_peaks.bed \
             This command reads your temp file and saves the sorted version as <code>results/visualization/sorted.bedgraph</code>. The <code>-k1,1</code> flag sorts by chromosome (column 1) and <code>-k2,2n</code> sorts by numeric position (column 2).
           </p>
 
-          <h3 id="compress-bigwig">Step 3: Compress to BigWig (BedGraph to BigWig)</h3>
+          <h3 id="compress-bigwig">Compress to BigWig (BedGraph to BigWig)</h3>
           <p>
             Finally, we convert the text file into the binary BigWig format using the <code>bedGraphToBigWig</code> tool. This dramatically reduces the file size and makes it readable by web browsers.
           </p>

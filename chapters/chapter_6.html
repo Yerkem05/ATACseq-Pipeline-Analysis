@@ -110,6 +110,9 @@
 
         <section id="trim-galore">
           <h2>The Standard Solution: Trim Galore!</h2>
+          <blockquote>
+            <p><strong>Note:</strong> Use Trim Galore! only if you are on a Linux server. Otherwise, keep scrolling to the next section for an alternative approach.</p>
+          </blockquote>
           <p>
             In the bioinformatics community, the standard tool for this task is <strong>Trim Galore!</strong> <a href="#ref-1" class="footnote-ref">[1]</a>. It is a "wrapper" script, which means it wraps around more complex tools (specifically one called <em>Cutadapt</em> <a href="#ref-2" class="footnote-ref">[2]</a>) to make them user-friendly. It is designed to automatically detect which adapter was used (usually the standard Illumina Nextera sequence for ATAC-seq) and trim it off without requiring you to manually type out the DNA sequence of the adapter.
           </p>

@@ -42,22 +42,22 @@
           <ul class="toc-list">
             <li><a href="#the-concept">The Concept: From Maps to Mountains</a></li>
             <li>
-              <a href="#reality-check">Phase 1: The Reality Check</a>
+              <a href="#reality-check">The Reality Check</a>
               <ul>
                 <li><a href="#check-dirty">Check the "Dirty" File</a></li>
                 <li><a href="#check-clean">Check the "Clean" File</a></li>
               </ul>
             </li>
-            <li><a href="#the-tool">Phase 2: The Tool (MACS2)</a></li>
+            <li><a href="#the-tool">The Tool (MACS2)</a></li>
             <li>
-              <a href="#execution">Phase 3: The Execution</a>
+              <a href="#execution">The Execution</a>
               <ul>
                 <li><a href="#biological-twist">The Biological Twist</a></li>
                 <li><a href="#the-command">The Command</a></li>
               </ul>
             </li>
             <li>
-              <a href="#the-treasure">Phase 4: The Treasure</a>
+              <a href="#the-treasure">The Treasure</a>
               <ul>
                 <li><a href="#narrowpeak">The "Map": narrowPeak</a></li>
                 <li><a href="#summits">The "Summit": summits.bed</a></li>
@@ -86,7 +86,7 @@
         </section>
 
         <section id="reality-check">
-          <h2>Phase 1: The Reality Check (Quantifying Your Filter)</h2>
+          <h2>The Reality Check (Quantifying Your Filter)</h2>
           <p>
             Before we call peaks, we must perform a "Sanity Check" on the work we did in the Alignment chapter. We claimed that we filtered out PCR duplicates and low-quality reads, but did it actually work?
           </p>
@@ -94,7 +94,7 @@
             We can verify this using a simple command called <code>wc</code> (Word Count). By using the <code>-l</code> flag, we ask the computer to count the number of lines (reads) in our files.
           </p>
 
-          <h3 id="check-dirty">Step 1: Check the "Dirty" File</h3>
+          <h3 id="check-dirty">Check the "Dirty" File</h3>
           <p>
             First, let's look at the alignment file <em>before</em> we ran the filters.
           </p>
@@ -111,7 +111,7 @@
             <pre><code>44509 results/chromap/aligned.bed</code></pre>
           </div>
 
-          <h3 id="check-clean">Step 2: Check the "Clean" File</h3>
+          <h3 id="check-clean">Check the "Clean" File</h3>
           <p>
             Now, let's look at the file <em>after</em> we applied the duplicate removal and quality filters.
           </p>
@@ -137,7 +137,7 @@
         </section>
 
         <section id="the-tool">
-          <h2>Phase 2: The Tool (MACS2)</h2>
+          <h2>The Tool (MACS2)</h2>
           <p>
             To find our peaks, we will use a tool called <strong>MACS2</strong> (Model-based Analysis for ChIP-Seq) <a href="#ref-1" class="footnote-ref">[1]</a>.
           </p>
@@ -169,7 +169,7 @@ mkdir -p results/peaks</code></pre>
         </section>
 
         <section id="execution">
-          <h2>Phase 3: The Execution (Calling the Peaks)</h2>
+          <h2>The Execution (Calling the Peaks)</h2>
           <p>
             This is the single most important command in the analysis. However, standard MACS2 settings are designed for ChIP-seq. For ATAC-seq, we must modify the parameters to account for the biology of the Tn5 transposase.
           </p>
@@ -263,7 +263,7 @@ INFO  @ Wed, 10 Dec 2025 01:17:49: #3 write output to results/peaks/ENCFF535OGL_
         </section>
 
         <section id="the-treasure">
-          <h2>Phase 4: The Treasure (Interpreting Results)</h2>
+          <h2>The Treasure (Interpreting Results)</h2>
           <p>
             Go to your results folder and look at what you created.
           </p>
