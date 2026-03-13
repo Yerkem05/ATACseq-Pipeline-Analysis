@@ -21,7 +21,7 @@
       <h1 class="article-title">Motif Enrichment with MEME Suite: Who Is Opening the Chromatin?</h1>
       <p class="article-subtitle">In this chapter, we will use bedtools getfasta to extract the DNA sequences contained within our peak regions, prepare and inspect the resulting FASTA file for submission, upload it to the MEME Suite web server to perform transcription factor motif enrichment analysis, and interpret the results to identify which transcription factors are likely driving chromatin accessibility in our monocyte sample.</p>
       <figure class="article-figure">
-        <img src="../images/atac_seq.png" alt="Motif enrichment with MEME Suite">
+        <img src="../images/motif.png" alt="Motif enrichment preview" style="object-fit: contain;" >
       </figure>
       <div class="article-meta">
         <div class="meta-column">
@@ -222,24 +222,24 @@ GCTAGCTAGCTAGCTA...</code></pre>
           <div class="code-cell">
             <pre><code>https://meme-suite.org/meme/tools/ame</code></pre>
           </div>
+          <img src="../images/meme_home.png" alt="Motif enrichment preview" style="object-fit: contain;" width="100%" height="auto" >
           <p>
-            We are using the <strong>AME</strong> tool specifically, which stands for <strong>Analysis of Motif Enrichment</strong>. Within the MEME Suite, AME is the tool designed for exactly our question: given a set of sequences, which known transcription factor motifs are statistically enriched? This is the most appropriate tool for ATAC-seq data where you have a defined set of peak sequences and want to match them against a database of known motifs.
-          </p>
-          <p>The submission form has several sections. Work through them carefully.</p>
+            We are using the <strong>AME</strong> tool specifically, which stands for <strong>Analysis of Motif Enrichment</strong>. Within the MEME Suite, AME is the tool designed for exactly our question: given a set of sequences, which known transcription factor motifs are statistically enriched? This is the most appropriate tool for ATAC-seq data where you have a defined set of peak sequences and want to match them against a database of known motifs. The submission form has several sections. We will work through them carefully.</p>
+          <p> <strong>Step 1 &mdash; Input Sequences</strong> </p>
+          <img src="../images/meme_input.png" alt="Motif enrichment preview" style="object-fit: contain;" width="100%" height="auto" >
+          
+          <p>Click &ldquo;Choose File&rdquo; and navigate to <code>results/peaks/peak_summit_sequences.fa</code> on your computer. This is the FASTA file you just created. After selecting it, you should see the filename appear next to the button confirming it was loaded.</p>
+          
+          <p><strong>Step 2 &mdash; Control Sequences</strong></p> 
+          <img src="../images/meme_shuffle.png" alt="Motif enrichment preview" style="object-fit: contain;" width="100%" height="auto" >
+          <p> Leave this set to &ldquo;Shuffle input sequences.&rdquo; This is important to understand. AME needs a background set of sequences to compare against, exactly the same concept as the background in GREAT. By selecting shuffle, you are telling AME to generate background sequences by randomly rearranging the letters in your actual peak sequences. This preserves the overall base composition of your sequences (their GC content) while destroying any real biological patterns &mdash; a statistically sound approach to background generation that is standard practice in the field.</p>
+          <p><strong>Step 3 &mdash; Motif Database</strong></p> 
+          <img src="../images/meme_motifs.png" alt="Motif enrichment preview" style="object-fit: contain;" width="100%" height="auto" >
+          <p>Click the dropdown under &ldquo;Select motif databases&rdquo; and select <strong>&ldquo;JASPAR Core Vertebrates (2026)&rdquo;</strong> or the most recent JASPAR vertebrates option available. JASPAR is the gold standard public database of transcription factor binding motifs, curated from thousands of ChIP-seq and protein binding experiments. By selecting the vertebrates collection you ensure it includes all mouse and human transcription factor motifs relevant to our experiment.</p>
+          <p><strong>Step 4 &mdash; Advanced Options</strong> </p> 
+          <p> Leave all other settings at their defaults for now. The default statistical threshold and scoring method are appropriate for a standard ATAC-seq motif analysis.</p>
           <p>
-            <strong>Step 1 &mdash; Input Sequences:</strong> Click &ldquo;Choose File&rdquo; and navigate to <code>results/peaks/peak_summit_sequences.fa</code> on your computer. This is the FASTA file you just created. After selecting it, you should see the filename appear next to the button confirming it was loaded.
-          </p>
-          <p>
-            <strong>Step 2 &mdash; Control Sequences:</strong> Leave this set to &ldquo;Shuffle input sequences.&rdquo; This is important to understand. AME needs a background set of sequences to compare against, exactly the same concept as the background in GREAT. By selecting shuffle, you are telling AME to generate background sequences by randomly rearranging the letters in your actual peak sequences. This preserves the overall base composition of your sequences (their GC content) while destroying any real biological patterns &mdash; a statistically sound approach to background generation that is standard practice in the field.
-          </p>
-          <p>
-            <strong>Step 3 &mdash; Motif Database:</strong> Click the dropdown under &ldquo;Select motif databases&rdquo; and select <strong>&ldquo;JASPAR Core Vertebrates (2024)&rdquo;</strong> or the most recent JASPAR vertebrates option available. JASPAR is the gold standard public database of transcription factor binding motifs, curated from thousands of ChIP-seq and protein binding experiments. By selecting the vertebrates collection you ensure it includes all mouse and human transcription factor motifs relevant to our experiment.
-          </p>
-          <p>
-            <strong>Step 4 &mdash; Advanced Options:</strong> Leave all other settings at their defaults for now. The default statistical threshold and scoring method are appropriate for a standard ATAC-seq motif analysis.
-          </p>
-          <p>
-            <strong>Step 5:</strong> Click <strong>Submit</strong>. AME will queue your job and display a job ID. For a file this size the analysis typically completes within 2 to 5 minutes. The page will automatically update when your results are ready, or you can bookmark the results URL and return to it later.
+            <strong>Step 5:</strong> Click <strong>Start Search</strong>. AME will queue your job and display a job ID. For a file this size the analysis typically completes within 2 to 5 minutes. The page will automatically update when your results are ready, or you can bookmark the results URL and return to it later.
           </p>
         </section>
 
